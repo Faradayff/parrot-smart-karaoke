@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FF000000</color>
+    <color name="title">#FFFFFFFF</color>
+    <color name="subtitle">#FF9AA0A6</color>
+    <color name="divider">#FF1F2226</color>
+    <color name="coverBg">#FF141619</color>
+    <color name="other">#FF8A9098</color>
+    <color name="currentActive">#FF1ED760</color>
+    <color name="plainText">#FFC8CCD0</color>
+    <color name="message">#FFD2D6DA</color>
+    <color name="messageDetail">#FF8A9098</color>
+    <color name="footerColor">#FF6B7280</color>
+</resources>

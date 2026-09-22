@@ -1,0 +1,39 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'me.farnasx.parrotkaraoke'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "me.farnasx.parrotkaraoke"
+        minSdk 10
+        targetSdk 10
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    // Test-only stubs for org.json (on-device the class comes from Android itself);
+    // the app has zero runtime dependencies.
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Parrot Karaoke</string>
+
+    <string name="connecting">Conectando con el relay…</string>
+    <string name="no_track">Nada en reproducción ahora mismo</string>
+    <string name="no_lyrics">Esta canción aún no tiene letra</string>
+    <string name="offline_title">Sin conexión con el relay</string>
+    <string name="offline_detail">Reintentando automáticamente…</string>
+    <string name="relay_error">El relay respondió un error</string>
+    <string name="auth_error_detail">Spotify no está autenticado en el relay.\nAbre la URL del relay con /login en un navegador.</string>
+    <string name="unknown_title">-</string>
+
+    <string name="footer_connecting">CONECTANDO</string>
+    <string name="footer_online">EN LÍNEA</string>
+    <string name="footer_paused">EN LÍNEA · PAUSA</string>
+    <string name="footer_offline">SIN RED · REINTENTANDO</string>
+    <string name="footer_relay_error">ERROR EN EL RELAY</string>
+
+    <string name="settings_open">AJUSTES</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_url">URL del relay (endpoint /status)</string>
+    <string name="settings_user">Usuario (Basic Auth)</string>
+    <string name="settings_pass">Contraseña (Basic Auth)</string>
+    <string name="settings_poll">Intervalo de sondeo (ms)</string>
+    <string name="settings_save">GUARDAR</string>
+    <string name="settings_saved">Guardado</string>
+</resources>
