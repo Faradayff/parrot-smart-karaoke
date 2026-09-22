@@ -1,26 +1,26 @@
 # Parrot Smart Karaoke
 
-Aplicación Android **para Android 2.3.7 (API 10)** pensada para la pantalla incrustada de un **Parrot Asteroid** (head unit de coche, pantalla 800×480). Muestra en tiempo real la **letra de la canción sincronizada** (estilo karaoké) junto con **título, artista y álbum**, y la portada del disco.
+An Android app **for Android 2.3.7 (API 10)** designed for the built-in screen of a **Parrot Asteroid** (car head unit, 800×480 display). It shows in real time the **synchronized song lyrics** (karaoke-style) along with the **title, artist, and album**, plus the album cover.
 
-Es puramente presentacional: **no tiene controles de música**. Toda la música se reproduce desde tu dispositivo habitual (Spotify), y esta app solo pinta lo que suena.
+It's purely presentational: **it has no music controls**. All music is played from your regular device (Spotify), and this app only draws what's playing.
 
-## Hecho para usarse junto a `spotify-lyrics-relay`
+## Made to be used alongside `spotify-lyrics-relay`
 
-> **Este proyecto no funciona solo.** Está diseñado para usarse **en combinación con
-> [spotify-lyrics-relay](https://github.com/Faradayff/spotify-lyrics-relay)**, un
-> servicio auto-hospedado (Go) que mantiene tu sesión de Spotify y expone el estado
-> de reproducción como JSON.
+> **This project does not work on its own.** It is designed to be used **in combination with
+> [spotify-lyrics-relay](https://github.com/Faradayff/spotify-lyrics-relay)**, a
+> self-hosted service (Go) that keeps your Spotify session alive and exposes the playback
+> state as JSON.
 
-La división de responsabilidades:
+Division of responsibilities:
 
-| | `spotify-lyrics-relay` | **este proyecto** |
+| | `spotify-lyrics-relay` | **this project** |
 |---|---|---|
-| Token OAuth de Spotify | sí (lo mantiene y lo refresca) | no |
-| Consultar LRCLIB y resolver la línea actual | sí (`line`, `lineText`, `lines`, `nextLines`) | no |
-| HTTP | servidor | cliente (polling) |
-| UI | HTML de estado / APIs | banda karaoké en la pantalla del coche |
+| Spotify OAuth token | yes (holds and refreshes it) | no |
+| Query LRCLIB and resolve the current line | yes (`line`, `lineText`, `lines`, `nextLines`) | no |
+| HTTP | server | client (polling) |
+| UI | status HTML / APIs | karaoke band on the car screen |
 
-La app **solo consume `GET /status`** del relay:
+The app **only consumes `GET /status`** from the relay:
 
 ```
 GET /status  →  200 JSON
@@ -28,51 +28,51 @@ GET /status  →  200 JSON
   "ok": true, "auth": true, "playing": true, "positionMs": 42000,
   "track": { "id", "name", "artist", "album", "uri", "durMs", "cover": [...] },
   "lyricsSynced": true, "lyricsLines": 54,
-  "line": 16,                // índice 0-based de la línea activa (la calcula el relay)
-  "lineText": "…",           // texto de esa línea, listo para pintar
+  "line": 16,                // 0-based index of the active line (computed by the relay)
+  "lineText": "…",           // text of that line, ready to render
   "lines":  [ { "t": ms, "text": "…" }, … ],
-  "nextLines": [ …hasta 3… ],
-  "plain": "solo si no existe letra sincronizada"
+  "nextLines": [ …up to 3… ],
+  "plain": "only if no synced lyrics exist"
 }
 ```
 
-## Por qué HTTP + Basic Auth
+## Why HTTP + Basic Auth
 
-Android 2.3.7 solo habla **TLS 1.0** y su tienda de CAs (≈2012) **no confía en las raíces de Let's Encrypt**. La configuración asumida es:
+Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not trust Let's Encrypt roots**. The assumed setup is:
 
-- un **vhost sobre el puerto 80** (HTTP) del relay, protegido con **Basic Auth** en el proxy (p. ej. el proxy inverso de Synology), montando solo `/status`, para que `/login`, `/callback`, `/control` y `/logout` sigan solo en el vhost HTTPS (Let's Encrypt) del navegador.
-- la app añade `Authorization: Basic …` a cada petición (user/pass desde la pantalla de ajustes, nunca en el binario).
+- a **vhost on port 80** (HTTP) of the relay, protected with **Basic Auth** at the proxy (e.g. the Synology reverse proxy), mounting only `/status`, so that `/login`, `/callback`, `/control`, and `/logout` stay only on the browser's HTTPS vhost (Let's Encrypt).
+- the app adds `Authorization: Basic …` to each request (user/pass from the settings screen, never in the binary).
 
-## Uso
+## Usage
 
-1. Ten el relay corriendo y un vhost HTTP+Basic Auth apuntando a `GET /status`
-   (ver el [README del relay](https://github.com/Faradayff/spotify-lyrics-relay)).
-2. Copia `parrot-karaoke.apk` (o el APK de `app/build/outputs/apk/debug/`) al pen drive
-   y instálalo desde el gestor de archivos del head unit, o:
-   ```
-   adb install parrot-karaoke.apk
-   ```
-3. Abre **Parrot Karaoke** → botón **AJUSTES** → URL del relay, usuario y contraseña
-   del Basic Auth (y, opcionalmente, el intervalo de sondeo) → **GUARDAR**.
-4. A reproducir: la app muestra en verde la línea actual, atenuadas 2 anteriores y
-   hasta 3 siguientes, con portada y estado (EN LÍNEA / PAUSA / SIN RED / error de auth).
+1. Have the relay running and an HTTP+Basic Auth vhost pointing at `GET /status`
+   (see the [relay's README](https://github.com/Faradayff/spotify-lyrics-relay)).
+2. Copy `parrot-karaoke.apk` (or the APK from `app/build/outputs/apk/debug/`) to a USB
+   drive and install it from the head unit's file manager, or:
+    ```
+    adb install parrot-karaoke.apk
+    ```
+3. Open **Parrot Karaoke** → **SETTINGS** button → relay URL, user, and password
+   for the Basic Auth (and optionally the polling interval) → **SAVE**.
+4. Hit play: the app shows the current line in green, the 2 previous ones dimmed,
+   and up to 3 upcoming lines, with cover art and status (ONLINE / PAUSED / OFFLINE / auth error).
 
-Comportamiento de red: sondeo adaptativo (≈1 s mientras la línea avanza, 3–5 s en
-pausa o esperando pista, backoff 5/10/15 s en errores de transporte) y reintentos
-permanentes. Sin red, conserva el último estado hasta volver.
+Network behavior: adaptive polling (≈1 s while a line is advancing, 3–5 s when paused
+or waiting for a track, 5/10/15 s backoff on transport errors) and permanent retries.
+Without a connection, it keeps the last known state until one returns.
 
-## Desarrollo
+## Development
 
-- **Stack**: Java (sin lambdas, sin androidx, sin librerías de terceros),
+- **Stack**: Java (no lambdas, no androidx, no third-party libraries),
   `minSdk 10` / `targetSdk 10`, AGP 8.5 + Gradle 8.7 + JDK 17.
-- Estructura:
-  - `model/` — `Status`, `Track`, `LyricLine`, `StatusParser` (JSON → modelo, testeable en JVM).
-  - `net/` — `Http` (HttpURLConnection + Base64), `RelayClient` (loop de sondeo con intervalos adaptativos), `CoverLoader` (portadas downsampladas).
-  - `MainActivity` — UI de banda karaoké y estados (reproduciendo, pausa, sin letras, sin red, error del relay).
-  - `SettingsActivity` — URL, user/pass, intervalo.
-  - `util/Prefs` — claves y valores por defecto.
-- Build y tests:
+- Structure:
+  - `model/` — `Status`, `Track`, `LyricLine`, `StatusParser` (JSON → model, testable on the JVM).
+  - `net/` — `Http` (HttpURLConnection + Base64), `RelayClient` (polling loop with adaptive intervals), `CoverLoader` (downsampled covers).
+  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, no network, relay error).
+  - `SettingsActivity` — URL, user/pass, interval.
+  - `util/Prefs` — keys and default values.
+- Build and tests:
   ```
-  ./gradlew :app:testDebugUnitTest   # unit tests del parser (9 casos)
+  ./gradlew :app:testDebugUnitTest   # parser unit tests (9 cases)
   ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
   ```
