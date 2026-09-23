@@ -16,10 +16,14 @@ import me.farnasx.parrotkaraoke.model.LyricLine;
 import me.farnasx.parrotkaraoke.model.Status;
 import me.farnasx.parrotkaraoke.model.Track;
 import me.farnasx.parrotkaraoke.net.CoverLoader;
+import me.farnasx.parrotkaraoke.net.Diagnosis;
 import me.farnasx.parrotkaraoke.net.RelayClient;
 import me.farnasx.parrotkaraoke.util.Prefs;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * Single-screen lyrics viewer for the Parrot head unit.
@@ -55,10 +59,20 @@ public class MainActivity extends Activity {
 
     private RelayClient client;
     private String lastTrackId;
-    private boolean everConnected;
 
     /** Audio-delay compensation (ms) applied to the active line; from settings. */
     private int delayMs = Prefs.DEFAULT_DELAY_MS;
+
+    /** Live countdown text for "next retry in N s", ticked by a 500 ms timer. */
+    private TextView retryLine;
+    private final android.os.Handler tickerHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable tickerRunnable;
+    private long retryDueAt;
+    private static final long TICK_MS = 500L;
+
+    private static final SimpleDateFormat HMS =
+            new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +99,7 @@ public class MainActivity extends Activity {
         msgBox = (LinearLayout) findViewById(R.id.msgBox);
         msgMain = (TextView) findViewById(R.id.msgMain);
         msgDetail = (TextView) findViewById(R.id.msgDetail);
+        retryLine = (TextView) findViewById(R.id.retryLine);
         footer = (TextView) findViewById(R.id.footer);
 
         View btnSettings = findViewById(R.id.btnSettings);
@@ -105,8 +120,13 @@ public class MainActivity extends Activity {
                 handleStatus(s);
             }
 
-            public void onTransportError(String message) {
-                handleOffline();
+            public void onDiagnosis(Diagnosis d) {
+                showDiagnosis(d);
+            }
+
+            public void onRetryScheduled() {
+                // The diagnosis screen already shows the retry; its ticker
+                // counts it down live.
             }
         }, url, user, pass, ms);
         client.start();
@@ -119,6 +139,7 @@ public class MainActivity extends Activity {
     }
 
     public void onDestroy() {
+        clearRetryTicker();
         if (client != null) {
             client.shutdown();
             client = null;
@@ -152,17 +173,141 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void handleOffline() {
-        if (!everConnected) {
-            showPlainMessage(getString(R.string.offline_title),
-                    getString(R.string.offline_detail));
+    // ------------------------------------------------- connectivity checks
+
+    /**
+     * Shows a failed relay attempt: what was tried, which check failed, and
+     * a live countdown of the next retry, so the screen keeps "alive" while
+     * the client works in the background.
+     */
+    private void showDiagnosis(Diagnosis d) {
+        showPlainMessage(headlineFor(d), detailFor(d));
+        footer.setText(getString(R.string.footer_offline_attempt, d.attempt));
+
+        if (d.nextRetryMs > 0) {
+            retryDueAt = System.currentTimeMillis() + d.nextRetryMs;
+            retryLine.setVisibility(View.VISIBLE);
+            ensureTicker();
+            tickRetry();
+        } else {
+            clearRetryTicker();
         }
-        footer.setText(R.string.footer_offline);
+    }
+
+    private void ensureTicker() {
+        if (tickerRunnable == null) {
+            tickerRunnable = new Runnable() {
+                public void run() {
+                    tickRetry();
+                }
+            };
+        }
+        tickerHandler.removeCallbacks(tickerRunnable);
+        tickerHandler.postDelayed(tickerRunnable, TICK_MS);
+    }
+
+    private void tickRetry() {
+        if (retryDueAt <= 0 || retryLine == null) {
+            return;
+        }
+        long leftMs = retryDueAt - System.currentTimeMillis();
+        if (leftMs > 1000) {
+            retryLine.setText(getString(R.string.retry_in, (int) (leftMs / 1000 + 0.5)));
+            tickerHandler.postDelayed(tickerRunnable, TICK_MS);
+        } else {
+            retryLine.setText(R.string.retry_due_now);
+        }
+    }
+
+    private void clearRetryTicker() {
+        if (tickerRunnable != null) {
+            tickerHandler.removeCallbacks(tickerRunnable);
+        }
+        retryDueAt = 0;
+        if (retryLine != null) {
+            retryLine.setVisibility(View.GONE);
+        }
+    }
+
+    private String headlineFor(Diagnosis d) {
+        switch (d.headline) {
+            case Diagnosis.HL_INVALID_URL:
+                return getString(R.string.diag_bad_url);
+            case Diagnosis.HL_CREDENTIALS:
+                return getString(R.string.diag_credentials);
+            case Diagnosis.HL_FORBIDDEN:
+                return getString(R.string.diag_forbidden);
+            case Diagnosis.HL_NOT_FOUND:
+                return getString(R.string.diag_not_found);
+            case Diagnosis.HL_HTTP_OTHER:
+                return getString(R.string.diag_http_other, d.headlineArg);
+            case Diagnosis.HL_NO_INTERNET:
+                return getString(R.string.diag_no_internet);
+            case Diagnosis.HL_DNS_FAIL:
+                return getString(R.string.diag_dns_fail, safe(d.headlineText));
+            case Diagnosis.HL_REFUSED:
+                return getString(R.string.diag_refused, safe(d.headlineText));
+            case Diagnosis.HL_READ_TIMEOUT:
+                return getString(R.string.diag_read_timeout, safe(d.headlineText));
+            case Diagnosis.HL_UNREACHABLE:
+                return getString(R.string.diag_unreachable, safe(d.headlineText));
+            default:
+                return getString(R.string.diag_other, safe(d.headlineText));
+        }
+    }
+
+    private String detailFor(Diagnosis d) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getString(R.string.diag_attempt_line, d.attempt,
+                HMS.format(new Date(d.timeMs))));
+        for (int i = 0; i < d.checks.size(); i++) {
+            Diagnosis.Check c = d.checks.get(i);
+            sb.append('\n').append(stateMark(c)).append("  ").append(checkLabel(c));
+            if (c.detail != null && c.detail.length() > 0) {
+                sb.append("  ").append(c.detail);
+            }
+        }
+        if (d.elapsedMs > 1000) {
+            sb.append('\n').append(getString(R.string.diag_elapsed, (int) (d.elapsedMs / 1000)));
+        }
+        return sb.toString();
+    }
+
+    private static String stateMark(Diagnosis.Check c) {
+        switch (c.state) {
+            case Diagnosis.Check.STATE_OK:
+                return "OK";
+            case Diagnosis.Check.STATE_FAIL:
+                return "FAIL";
+            default:
+                return "SKIP";
+        }
+    }
+
+    private String checkLabel(Diagnosis.Check c) {
+        switch (c.kind) {
+            case Diagnosis.Check.KIND_URL:
+                return getString(R.string.diag_label_url);
+            case Diagnosis.Check.KIND_INTERNET:
+                return getString(R.string.diag_label_internet);
+            case Diagnosis.Check.KIND_DNS:
+                return getString(R.string.diag_label_dns);
+            case Diagnosis.Check.KIND_RELAY_PORT:
+                return getString(R.string.diag_label_port);
+            case Diagnosis.Check.KIND_HTTP:
+                return getString(R.string.diag_label_http);
+            default:
+                return "";
+        }
+    }
+
+    private static String safe(String s) {
+        return (s == null) ? "" : s;
     }
 
     /** Runs on the main thread (RelayClient posts there). */
     private void handleStatus(Status s) {
-        everConnected = true;
+        clearRetryTicker();
 
         if (!s.ok) {
             String detail = s.auth

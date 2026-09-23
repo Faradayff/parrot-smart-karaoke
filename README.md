@@ -62,7 +62,10 @@ Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not tru
 
 Network behavior: adaptive polling (≈1 s while a line is advancing, 3–5 s when paused
 or waiting for a track, 5/10/15 s backoff on transport errors) and permanent retries.
-Without a connection, it keeps the last known state until one returns.
+Without a connection it shows a live diagnosis on every attempt — general internet
+reachability (TCP probe to a public host), DNS of the relay, the relay port, and the
+HTTP answer (e.g. 401 = credentials rejected) — with the attempt number and
+a running countdown of the next retry, so the screen never looks frozen.
 
 ## Development
 
@@ -70,12 +73,12 @@ Without a connection, it keeps the last known state until one returns.
   `minSdk 10` / `targetSdk 10`, AGP 8.5 + Gradle 8.7 + JDK 17.
 - Structure:
   - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM).
-  - `net/` — `Http` (HttpURLConnection + Base64), `RelayClient` (polling loop with adaptive intervals), `CoverLoader` (downsampled covers).
-  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, no network, relay error).
+  - `net/` — `Http` (HttpURLConnection + Base64, typed `HttpException` with the status code), `RelayClient` (polling loop with adaptive intervals), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
+  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown).
   - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps).
   - `util/Prefs` — keys and default values.
 - Build and tests:
   ```
-  ./gradlew :app:testDebugUnitTest   # parser unit tests (9 cases)
+  ./gradlew :app:testDebugUnitTest   # parser + diagnostics unit tests (28 cases)
   ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
   ```

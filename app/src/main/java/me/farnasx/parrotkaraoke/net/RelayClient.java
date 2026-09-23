@@ -6,8 +6,6 @@ import android.os.Looper;
 import me.farnasx.parrotkaraoke.model.Status;
 import me.farnasx.parrotkaraoke.model.StatusParser;
 
-import java.io.IOException;
-
 /**
  * Polls the relay {@code /status} endpoint on a background thread and pushes
  * results to the main looper.
@@ -19,13 +17,21 @@ import java.io.IOException;
  *   <li>5 s when paused or waiting for a track,</li>
  *   <li>backoff (5 s / 10 s / 15 s) on transport errors and persistent relay errors.</li>
  * </ul>
+ *
+ * <p>Every failed attempt produces a {@link Diagnosis} (internet, DNS,
+ * relay port, HTTP answer) via {@link Diagnostics}, so the UI can show what
+ * is happening on each retry instead of a static "connecting" message.
  */
 public final class RelayClient {
 
     public interface Callback {
         void onStatus(Status status);
 
-        void onTransportError(String message);
+        /** A poll failed; {@code diagnosis} explains why. */
+        void onDiagnosis(Diagnosis diagnosis);
+
+        /** A retry has been scheduled; the client is backing off now. */
+        void onRetryScheduled();
     }
 
     /** Persistent relay error (e.g. Spotify not authenticated): slow down a lot. */
@@ -81,22 +87,29 @@ public final class RelayClient {
         int consecutiveErrors = 0;
         while (running) {
             Status status;
-            String errorMsg;
+            Diagnosis diagnosis;
             long delayMs;
+            Exception failure = null;
             try {
                 byte[] body = Http.get(url, user, pass);
                 String text = new String(body, "UTF-8");
                 status = StatusParser.parse(text);
-                errorMsg = null;
+                diagnosis = null;
                 consecutiveErrors = 0;
                 delayMs = delayFor(status);
-            } catch (final Exception e) {
-                IOException io = (e instanceof IOException) ? (IOException) e
-                        : new IOException(String.valueOf(e));
+            } catch (Exception e) {
                 status = null;
-                errorMsg = describe(io);
+                failure = e;
+                diagnosis = null;
                 consecutiveErrors++;
                 delayMs = backoff(consecutiveErrors);
+                // Run the connectivity probes and build the diagnosis for the
+                // UI. Guarded: a failing diagnostic must never kill the poller.
+                try {
+                    diagnosis = Diagnostics.failedAttempt(url, consecutiveErrors, e, delayMs);
+                } catch (Exception diagEx) {
+                    diagnosis = null;
+                }
             }
 
             if (status != null) {
@@ -107,10 +120,26 @@ public final class RelayClient {
                     }
                 });
             } else {
-                final String msg = errorMsg;
+                final Diagnosis diag = diagnosis;
+                final Exception failRef = failure;
+                final String reason = (failRef == null) ? null : failRef.toString();
+                final int attemptCount = consecutiveErrors;
+                final long backoffMs = delayMs;
                 main.post(new Runnable() {
                     public void run() {
-                        callback.onTransportError(msg);
+                        if (diag != null) {
+                            callback.onDiagnosis(diag);
+                        } else {
+                            // The diagnostic itself failed: still show the error.
+                            callback.onDiagnosis(Diagnostics.fallback(
+                                    attemptCount, reason, backoffMs));
+                        }
+                    }
+                });
+                // Announce the next retry so the UI can count it down.
+                main.post(new Runnable() {
+                    public void run() {
+                        callback.onRetryScheduled();
                     }
                 });
             }
@@ -142,14 +171,6 @@ public final class RelayClient {
             return 10000;
         }
         return 15000;
-    }
-
-    private static String describe(IOException e) {
-        String m = e.getMessage();
-        if (m == null || m.length() == 0) {
-            m = e.getClass().getSimpleName();
-        }
-        return m;
     }
 
     private void sleepInterruptible(long ms) {

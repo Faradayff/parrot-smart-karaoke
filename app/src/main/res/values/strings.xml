@@ -5,8 +5,6 @@
     <string name="connecting">Connecting to the relay…</string>
     <string name="no_track">Nothing playing right now</string>
     <string name="no_lyrics">This song doesn\'t have lyrics yet</string>
-    <string name="offline_title">No connection to the relay</string>
-    <string name="offline_detail">Retrying automatically…</string>
     <string name="relay_error">The relay returned an error</string>
     <string name="auth_error_detail">Spotify is not authenticated on the relay.\nOpen the relay URL with /login in a browser.</string>
     <string name="unknown_title">-</string>
@@ -14,8 +12,32 @@
     <string name="footer_connecting">CONNECTING</string>
     <string name="footer_online">ONLINE</string>
     <string name="footer_paused">ONLINE · PAUSED</string>
-    <string name="footer_offline">OFFLINE · RETRYING</string>
+    <string name="footer_offline_attempt">OFFLINE · ATTEMPT %1$d</string>
     <string name="footer_relay_error">RELAY ERROR</string>
+
+    <!-- Connectivity diagnostics, shown on every failed relay attempt -->
+    <string name="diag_bad_url">The relay URL is not valid</string>
+    <string name="diag_credentials">The relay rejects the credentials (HTTP 401)</string>
+    <string name="diag_forbidden">The relay denies access (HTTP 403)</string>
+    <string name="diag_not_found">The endpoint does not exist on the relay (HTTP 404): check the relay URL</string>
+    <string name="diag_http_other">The relay answered with an error (HTTP %1$d)</string>
+    <string name="diag_no_internet">No internet connection</string>
+    <string name="diag_dns_fail">Cannot resolve the relay host (%1$s)</string>
+    <string name="diag_refused">The relay host answers, but the port is refused (%1$s). Is the relay running?</string>
+    <string name="diag_read_timeout">The relay accepted the connection but did not answer (%1$s)</string>
+    <string name="diag_unreachable">The relay host does not answer (%1$s)</string>
+    <string name="diag_other">Network error: %1$s</string>
+
+    <string name="diag_attempt_line">Attempt %1$d · %2$s</string>
+    <string name="diag_elapsed">check took %1$d s</string>
+    <string name="diag_label_url">relay URL</string>
+    <string name="diag_label_internet">internet</string>
+    <string name="diag_label_dns">DNS</string>
+    <string name="diag_label_port">relay port</string>
+    <string name="diag_label_http">HTTP /status</string>
+
+    <string name="retry_in">Next retry in %1$d s</string>
+    <string name="retry_due_now">Retrying…</string>
 
     <string name="settings_open">SETTINGS</string>
     <string name="settings_title">Settings</string>

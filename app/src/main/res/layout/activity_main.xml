@@ -200,6 +200,17 @@
                 android:gravity="center"
                 android:textColor="@color/messageDetail"
                 android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/retryLine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:gravity="center"
+                android:singleLine="true"
+                android:textColor="@color/message"
+                android:textSize="14sp"
+                android:visibility="gone" />
         </LinearLayout>
     </FrameLayout>
 

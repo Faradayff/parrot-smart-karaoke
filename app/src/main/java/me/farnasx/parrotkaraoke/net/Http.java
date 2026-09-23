@@ -18,6 +18,22 @@ public final class Http {
     public static final int READ_TIMEOUT_MS = 6000;
     public static final int MAX_BODY_BYTES = 512 * 1024;
 
+    /**
+     * HTTP-level failure: the connection went through and a response arrived,
+     * but with a non-2xx status code. {@code code} is the HTTP status,
+     * {@code snippet} a short piece of the error body (may be null).
+     */
+    public static final class HttpException extends IOException {
+        public final int code;
+        public final String snippet;
+
+        public HttpException(int code, String snippet) {
+            super("HTTP " + code);
+            this.code = code;
+            this.snippet = snippet;
+        }
+    }
+
     private Http() {
     }
 
@@ -50,11 +66,11 @@ public final class Http {
             }
             byte[] body = readAll(in);
             if (code < 200 || code >= 300) {
-                String snippet = new String(body, "UTF-8");
+                String snippet = new String(body, "UTF-8").trim();
                 if (snippet.length() > 120) {
                     snippet = snippet.substring(0, 120);
                 }
-                throw new IOException("HTTP " + code + " " + snippet);
+                throw new HttpException(code, snippet);
             }
             return body;
         } finally {
