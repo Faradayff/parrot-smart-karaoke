@@ -10,11 +10,18 @@ public final class Prefs {
     public static final String KEY_USER = "relay_user";
     public static final String KEY_PASS = "relay_pass";
     public static final String KEY_POLL_MS = "poll_ms";
+    public static final String KEY_DELAY_MS = "lyrics_delay_ms";
 
     public static final String DEFAULT_URL = "http://lyrics.farnasx.synology.me/status";
     public static final String DEFAULT_USER = "";
     public static final String DEFAULT_PASS = "";
     public static final int DEFAULT_POLL_MS = 1000;
+
+    /** Audio-delay compensation for the lyrics, in milliseconds. */
+    public static final int DEFAULT_DELAY_MS = 0;
+    public static final int DELAY_STEP_MS = 100; // 0.1 s granularity
+    public static final int DELAY_MIN_MS = 0;
+    public static final int DELAY_MAX_MS = 30000; // 30 s is plenty for a car audio chain
 
     private Prefs() {
     }

@@ -54,6 +54,9 @@ Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not tru
     ```
 3. Open **Parrot Karaoke** → **SETTINGS** button → relay URL, user, and password
    for the Basic Auth (and optionally the polling interval) → **SAVE**.
+   If the music arrives delayed in the car (typical ~1 s), set **Lyrics delay**
+   (0.1 s granularity, 0–30 s) so the words follow what you actually hear —
+   it is saved permanently and takes effect as soon as you come back.
 4. Hit play: the app shows the current line in green, the 2 previous ones dimmed,
    and up to 3 upcoming lines, with cover art and status (ONLINE / PAUSED / OFFLINE / auth error).
 
@@ -66,10 +69,10 @@ Without a connection, it keeps the last known state until one returns.
 - **Stack**: Java (no lambdas, no androidx, no third-party libraries),
   `minSdk 10` / `targetSdk 10`, AGP 8.5 + Gradle 8.7 + JDK 17.
 - Structure:
-  - `model/` — `Status`, `Track`, `LyricLine`, `StatusParser` (JSON → model, testable on the JVM).
+  - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM).
   - `net/` — `Http` (HttpURLConnection + Base64), `RelayClient` (polling loop with adaptive intervals), `CoverLoader` (downsampled covers).
   - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, no network, relay error).
-  - `SettingsActivity` — URL, user/pass, interval.
+  - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps).
   - `util/Prefs` — keys and default values.
 - Build and tests:
   ```

@@ -82,6 +82,50 @@
             android:paddingTop="6dp"
             android:paddingBottom="6dp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/settings_delay"
+            android:textColor="@color/subtitle"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnDelayMinus"
+                android:layout_width="64dp"
+                android:layout_height="wrap_content"
+                android:text="\u2212" />
+
+            <TextView
+                android:id="@+id/delayValue"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:gravity="center"
+                android:textColor="@color/title"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnDelayPlus"
+                android:layout_width="64dp"
+                android:layout_height="wrap_content"
+                android:text="+" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_delay_hint"
+            android:textColor="@color/subtitle"
+            android:textSize="12sp" />
+
         <Button
             android:id="@+id/btnSave"
             android:layout_width="wrap_content"

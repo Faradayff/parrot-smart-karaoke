@@ -7,17 +7,22 @@ import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import me.farnasx.parrotkaraoke.util.Prefs;
 
-/** Minimal settings screen (relay URL, Basic Auth, poll interval). */
+/** Minimal settings screen (relay URL, Basic Auth, poll interval, lyrics delay). */
 public class SettingsActivity extends Activity {
 
     private EditText urlEt;
     private EditText userEt;
     private EditText passEt;
     private EditText pollEt;
+    private TextView delayValue;
+
+    /** Live delay value in ms, adjusted with -/+ and persisted on SAVE. */
+    private int delayMs;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -27,6 +32,7 @@ public class SettingsActivity extends Activity {
         userEt = (EditText) findViewById(R.id.setUser);
         passEt = (EditText) findViewById(R.id.setPass);
         pollEt = (EditText) findViewById(R.id.setPoll);
+        delayValue = (TextView) findViewById(R.id.delayValue);
 
         // android:inputType is an API 11 manifest attribute; set it programmatically
         // so this also works on 2.3.x (InputType API 1).
@@ -38,12 +44,51 @@ public class SettingsActivity extends Activity {
         passEt.setText(Prefs.get(this, Prefs.KEY_PASS, Prefs.DEFAULT_PASS));
         pollEt.setText(String.valueOf(Prefs.getInt(this, Prefs.KEY_POLL_MS, Prefs.DEFAULT_POLL_MS)));
 
+        delayMs = Prefs.getInt(this, Prefs.KEY_DELAY_MS, Prefs.DEFAULT_DELAY_MS);
+        updateDelayDisplay();
+
+        Button delayMinus = (Button) findViewById(R.id.btnDelayMinus);
+        delayMinus.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                changeDelay(-Prefs.DELAY_STEP_MS);
+            }
+        });
+        Button delayPlus = (Button) findViewById(R.id.btnDelayPlus);
+        delayPlus.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                changeDelay(+Prefs.DELAY_STEP_MS);
+            }
+        });
+        delayValue.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                delayMs = Prefs.DEFAULT_DELAY_MS;
+                updateDelayDisplay();
+            }
+        });
+
         Button save = (Button) findViewById(R.id.btnSave);
         save.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 save();
             }
         });
+    }
+
+    private void changeDelay(int deltaMs) {
+        delayMs += deltaMs;
+        if (delayMs < Prefs.DELAY_MIN_MS) {
+            delayMs = Prefs.DELAY_MIN_MS;
+        }
+        if (delayMs > Prefs.DELAY_MAX_MS) {
+            delayMs = Prefs.DELAY_MAX_MS;
+        }
+        updateDelayDisplay();
+    }
+
+    private void updateDelayDisplay() {
+        // In 0.1 s steps the value is always a multiple of 100 ms.
+        int tenths = delayMs / 100;
+        delayValue.setText((tenths / 10) + "," + (tenths % 10) + " s");
     }
 
     private void save() {
@@ -70,6 +115,7 @@ public class SettingsActivity extends Activity {
         ed.putString(Prefs.KEY_USER, userEt.getText().toString().trim());
         ed.putString(Prefs.KEY_PASS, passEt.getText().toString().trim());
         ed.putInt(Prefs.KEY_POLL_MS, ms);
+        ed.putInt(Prefs.KEY_DELAY_MS, delayMs);
         ed.commit();
 
         Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();

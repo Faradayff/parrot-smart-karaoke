@@ -11,6 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import me.farnasx.parrotkaraoke.model.LyricIndex;
 import me.farnasx.parrotkaraoke.model.LyricLine;
 import me.farnasx.parrotkaraoke.model.Status;
 import me.farnasx.parrotkaraoke.model.Track;
@@ -55,6 +56,9 @@ public class MainActivity extends Activity {
     private RelayClient client;
     private String lastTrackId;
     private boolean everConnected;
+
+    /** Audio-delay compensation (ms) applied to the active line; from settings. */
+    private int delayMs = Prefs.DEFAULT_DELAY_MS;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,6 +110,12 @@ public class MainActivity extends Activity {
             }
         }, url, user, pass, ms);
         client.start();
+    }
+
+    public void onResume() {
+        super.onResume();
+        // Reload so a value changed in the settings screen applies immediately.
+        delayMs = Prefs.getInt(this, Prefs.KEY_DELAY_MS, Prefs.DEFAULT_DELAY_MS);
     }
 
     public void onDestroy() {
@@ -183,10 +193,24 @@ public class MainActivity extends Activity {
         }
 
         boolean active = s.playing;
-        boolean hasBand = s.line >= 0
-                && (nonEmpty(s.lineText) || (s.lines != null && s.lines.size() > 0));
+
+        // If the user set an audio-delay compensation (e.g. the car audio
+        // chain plays ~1 s late), re-derive the active line at
+        // positionMs - delayMs, so the words match what is heard now.
+        int effIdx = s.line;
+        String effText = s.lineText;
+        if (delayMs > 0 && s.lines != null && s.lines.size() > 0) {
+            int li = LyricIndex.indexOfLine(s.lines, s.positionMs, delayMs);
+            if (li >= 0) {
+                effIdx = li;
+                effText = s.lines.get(li).text;
+            }
+        }
+
+        boolean hasBand = effIdx >= 0
+                && (nonEmpty(effText) || (s.lines != null && s.lines.size() > 0));
         if (hasBand) {
-            renderBand(s, active);
+            renderBand(s, effIdx, effText, active);
         } else if (nonEmpty(s.plain)) {
             renderPlain(s.plain, active);
         } else {
@@ -229,11 +253,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void renderBand(Status s, boolean active) {
+    private void renderBand(Status s, int effIdx, String effText, boolean active) {
         showView(band);
         ArrayList<LyricLine> all = s.lines;
         int n = (all == null) ? 0 : all.size();
-        int idx = s.line;
+        int idx = effIdx;
         if (idx < 0) {
             idx = 0;
         }
@@ -244,7 +268,7 @@ public class MainActivity extends Activity {
         setBandSlot(prev2, (n > 0 && idx - 2 >= 0) ? all.get(idx - 2).text : "");
         setBandSlot(prev1, (n > 0 && idx - 1 >= 0) ? all.get(idx - 1).text : "");
 
-        String cur = nonEmpty(s.lineText) ? s.lineText
+        String cur = nonEmpty(effText) ? effText
                 : (n > 0 ? all.get(idx).text : "");
         current.setText(cur);
 

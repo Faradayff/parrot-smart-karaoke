@@ -23,6 +23,8 @@
     <string name="settings_user">User (Basic Auth)</string>
     <string name="settings_pass">Password (Basic Auth)</string>
     <string name="settings_poll">Polling interval (ms)</string>
+    <string name="settings_delay">Lyrics delay (s)</string>
+    <string name="settings_delay_hint">Compensates the audio delay (e.g. when the music arrives ~1 s late in the car). Tap the value to reset to 0.</string>
     <string name="settings_save">SAVE</string>
     <string name="settings_saved">Saved</string>
 </resources>
