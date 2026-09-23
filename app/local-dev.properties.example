@@ -1,0 +1,9 @@
+# Local development defaults, baked into the APK at build time.
+# Copy this file to `local-dev.properties` (gitignored — never committed)
+# to get a development APK with the relay preconfigured.
+#
+# The official releases (built in CI without this file) ship with EMPTY
+# defaults: no relay URL and no credentials in the binary.
+relay.url=http://your-relay-host/status
+relay.user=your-basic-auth-user
+relay.pass=your-basic-auth-password

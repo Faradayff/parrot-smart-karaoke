@@ -3,7 +3,16 @@ package me.farnasx.parrotkaraoke.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/** SharedPreferences facade with the app's keys and defaults. */
+import me.farnasx.parrotkaraoke.BuildConfig;
+
+/**
+ * SharedPreferences facade with the app's keys and defaults.
+ *
+ * <p>The relay defaults come from the build ({@link BuildConfig}): official
+ * builds ship empty (the user fills them in via Settings), while local
+ * development builds can be preconfigured through
+ * {@code app/local-dev.properties} (gitignored, see the .example file).
+ */
 public final class Prefs {
 
     public static final String KEY_URL = "relay_url";
@@ -12,9 +21,9 @@ public final class Prefs {
     public static final String KEY_POLL_MS = "poll_ms";
     public static final String KEY_DELAY_MS = "lyrics_delay_ms";
 
-    public static final String DEFAULT_URL = "http://lyrics.farnasx.synology.me/status";
-    public static final String DEFAULT_USER = "";
-    public static final String DEFAULT_PASS = "";
+    public static final String DEFAULT_URL = BuildConfig.DEFAULT_RELAY_URL;
+    public static final String DEFAULT_USER = BuildConfig.DEFAULT_RELAY_USER;
+    public static final String DEFAULT_PASS = BuildConfig.DEFAULT_RELAY_PASS;
     public static final int DEFAULT_POLL_MS = 1000;
 
     /** Audio-delay compensation for the lyrics, in milliseconds. */

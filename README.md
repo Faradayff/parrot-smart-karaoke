@@ -125,3 +125,9 @@ on GitHub Actions and creates the release automatically.
   ./gradlew :app:testDebugUnitTest   # parser + diagnostics unit tests (28 cases)
   ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
   ```
+  - **Local development builds**: the relay defaults (URL, Basic Auth user/pass)
+    are injected at build time from `app/local-dev.properties` — copy
+    `local-dev.properties.example` and fill it in. That file is **gitignored**,
+    so a development APK for your own relay stays out of the repository; the
+    public releases (built in CI without the file) ship with **empty** defaults,
+    i.e. no relay URL and no credentials anywhere in the binary.
