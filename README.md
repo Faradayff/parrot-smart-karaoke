@@ -67,6 +67,24 @@ reachability (TCP probe to a public host), DNS of the relay, the relay port, and
 HTTP answer (e.g. 401 = credentials rejected) — with the attempt number and
 a running countdown of the next retry, so the screen never looks frozen.
 
+## Localization
+
+English is the default (base resources in `res/values/`). When the device locale
+is Spanish, the whole UI switches automatically to Spanish
+(translated `res/values-es/`) — no in-app setting is required, Android picks
+the matching resources from the device configuration.
+
+The free-text fragments of the connectivity diagnostics are localized through
+the `Diagnostics.Labels` interface: the Android side passes
+`ResourceLabels` (built from the string resources), while the JVM unit tests
+use the built-in `Diagnostics.English`, so the classification logic stays
+pure and testable without Android.
+
+Adding more languages: copy `res/values-es/strings.xml` to
+`res/values-<lang>/strings.xml`, translate it, and translate the fragments in
+`ResourceLabels` (or add a new `Diagnostics.Labels` implementation if the
+word choices do not fit the resources).
+
 ## Development
 
 - **Stack**: Java (no lambdas, no androidx, no third-party libraries),

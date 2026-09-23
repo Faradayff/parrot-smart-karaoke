@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spanish translation. English (res/values/) is the default; Android picks
+         this file automatically when the device locale is Spanish. -->
+
+    <string name="app_name">Parrot Karaoke</string>
+
+    <string name="connecting">Conectando con el relay…</string>
+    <string name="no_track">Nada sonando ahora mismo</string>
+    <string name="no_lyrics">Esta canción aún no tiene letra</string>
+    <string name="relay_error">El relay ha devuelto un error</string>
+    <string name="auth_error_detail">Spotify no está autenticado en el relay.\nAbre la URL del relay con /login en un navegador.</string>
+    <string name="unknown_title">-</string>
+
+    <string name="footer_connecting">CONECTANDO</string>
+    <string name="footer_online">EN LÍNEA</string>
+    <string name="footer_paused">EN LÍNEA · EN PAUSA</string>
+    <string name="footer_offline_attempt">SIN CONEXIÓN · INTENTO %1$d</string>
+    <string name="footer_relay_error">ERROR DEL RELAY</string>
+
+    <!-- Connectivity diagnostics, shown on every failed relay attempt -->
+    <string name="diag_bad_url">La URL del relay no es válida</string>
+    <string name="diag_credentials">El relay rechaza las credenciales (HTTP 401)</string>
+    <string name="diag_forbidden">El relay deniega el acceso (HTTP 403)</string>
+    <string name="diag_not_found">El punto final no existe en el relay (HTTP 404): comprueba la URL del relay</string>
+    <string name="diag_http_other">El relay ha respondido con un error (HTTP %1$d)</string>
+    <string name="diag_no_internet">Sin conexión a internet</string>
+    <string name="diag_dns_fail">No se puede resolver el host del relay (%1$s)</string>
+    <string name="diag_refused">El host del relay responde, pero el puerto se rechaza (%1$s). ¿Está el relay en marcha?</string>
+    <string name="diag_read_timeout">El relay aceptó la conexión pero no respondió (%1$s)</string>
+    <string name="diag_unreachable">El host del relay no responde (%1$s)</string>
+    <string name="diag_other">Error de red: %1$s</string>
+
+    <string name="diag_attempt_line">Intento %1$d · %2$s</string>
+    <string name="diag_elapsed">La comprobación tardó %1$d s</string>
+    <string name="diag_label_url">URL del relay</string>
+    <string name="diag_label_internet">internet</string>
+    <string name="diag_label_dns">DNS</string>
+    <string name="diag_label_port">puerto del relay</string>
+    <string name="diag_label_http">HTTP /status</string>
+
+    <string name="retry_in">Próximo reintento en %1$d s</string>
+    <string name="retry_due_now">Reintentando…</string>
+
+    <string name="settings_open">AJUSTES</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_url">URL del relay (punto final /status)</string>
+    <string name="settings_user">Usuario (Basic Auth)</string>
+    <string name="settings_pass">Contraseña (Basic Auth)</string>
+    <string name="settings_poll">Intervalo de consulta (ms)</string>
+    <string name="settings_delay">Retardo de la letra (s)</string>
+    <string name="settings_delay_hint">Compensa el retardo del audio (p. ej., cuando la música llega ~1 s tarde en el coche). Toca el valor para restablecerlo a 0.</string>
+    <string name="settings_save">GUARDAR</string>
+    <string name="settings_saved">Guardado</string>
+
+    <!-- Free-text fragments of the diagnostic check list (see Diagnostics.Labels) -->
+    <string name="diag_detail_invalid_url">URL no válida</string>
+    <string name="diag_detail_implied">implícito (el relay respondió)</string>
+    <string name="diag_detail_not_checked">no comprobado</string>
+    <string name="diag_detail_tcp_unreachable">%1$s inaccesible</string>
+    <string name="diag_detail_dns_failed">%1$s no resuelve</string>
+    <string name="diag_detail_port_open">%1$s abierto</string>
+    <string name="diag_detail_port_closed">%1$s inaccesible</string>
+    <string name="diag_detail_no_response">sin respuesta</string>
+    <string name="diag_detail_unavailable">diagnóstico no disponible</string>
+    <string name="diag_detail_unknown_error">error desconocido</string>
+
+    <!-- Lyrics-delay value in the settings screen (comma decimal separator) -->
+    <string name="settings_delay_value">%1$d,%2$d s</string>
+</resources>

@@ -128,7 +128,7 @@ public class MainActivity extends Activity {
                 // The diagnosis screen already shows the retry; its ticker
                 // counts it down live.
             }
-        }, url, user, pass, ms);
+        }, url, user, pass, ms, new ResourceLabels(this));
         client.start();
     }
 

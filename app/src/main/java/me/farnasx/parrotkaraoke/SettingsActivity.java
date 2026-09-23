@@ -86,9 +86,11 @@ public class SettingsActivity extends Activity {
     }
 
     private void updateDelayDisplay() {
-        // In 0.1 s steps the value is always a multiple of 100 ms.
+        // In 0.1 s steps the value is always a multiple of 100 ms. The decimal
+        // separator comes from the locale (dot in English, comma in Spanish).
         int tenths = delayMs / 100;
-        delayValue.setText((tenths / 10) + "," + (tenths % 10) + " s");
+        delayValue.setText(getString(R.string.settings_delay_value,
+                tenths / 10, tenths % 10));
     }
 
     private void save() {

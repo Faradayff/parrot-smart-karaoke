@@ -35,9 +35,60 @@ public final class Diagnostics {
     private Diagnostics() {
     }
 
+    /**
+     * Localized word choices for the free-text fragments attached to each
+     * {@link Diagnosis.Check} (pure data such as host:port, IP addresses and
+     * HTTP codes stays as-is).
+     *
+     * <p>The default is {@link English}: it keeps this class usable from the
+     * JVM unit tests. The Android side passes a translation
+     * ({@code ResourceLabels}) built from the string resources, so the device
+     * locale decides the language.
+     */
+    public interface Labels {
+        String invalidUrl();
+
+        String implied();
+
+        String notChecked();
+
+        String tcpUnreachable(String target);
+
+        String dnsFailed(String host);
+
+        String portOpen(String label);
+
+        String portClosed(String label);
+
+        String noResponse();
+
+        String diagnosticUnavailable();
+
+        String unknownError();
+    }
+
+    /** Default word choices (English), used on the JVM and as fallback. */
+    public static final class English implements Labels {
+        public String invalidUrl() { return "invalid URL"; }
+        public String implied() { return "implied (relay answered)"; }
+        public String notChecked() { return "not checked"; }
+        public String tcpUnreachable(String target) { return target + " unreachable"; }
+        public String dnsFailed(String host) { return host + " not resolvable"; }
+        public String portOpen(String label) { return label + " open"; }
+        public String portClosed(String label) { return label + " unreachable"; }
+        public String noResponse() { return "no response"; }
+        public String diagnosticUnavailable() { return "diagnostic unavailable"; }
+        public String unknownError() { return "unknown error"; }
+    }
+
     /** Runs the probes for a failed attempt and returns the diagnosis. */
     public static Diagnosis failedAttempt(String relayUrl, int attempt,
                                           Exception e, long nextRetryMs) {
+        return failedAttempt(relayUrl, attempt, e, nextRetryMs, new English());
+    }
+
+    public static Diagnosis failedAttempt(String relayUrl, int attempt,
+                                          Exception e, long nextRetryMs, Labels labels) {
         final long start = System.currentTimeMillis();
 
         String host = null;
@@ -86,7 +137,7 @@ public final class Diagnostics {
 
         final Diagnosis d = diagnose(host, port, attempt,
                 internet, dns, dnsIp, relayTcp, transport, httpCode,
-                System.currentTimeMillis() - start);
+                System.currentTimeMillis() - start, labels);
         d.nextRetryMs = nextRetryMs;
         return d;
     }
@@ -110,10 +161,18 @@ public final class Diagnostics {
                                      Boolean internetOk, Boolean dnsOk, String dnsIp,
                                      Boolean relayTcpOk, String transport,
                                      int httpCode, long elapsedMs) {
+        return diagnose(host, port, attempt, internetOk, dnsOk, dnsIp, relayTcpOk,
+                transport, httpCode, elapsedMs, new English());
+    }
+
+    public static Diagnosis diagnose(String host, int port, int attempt,
+                                     Boolean internetOk, Boolean dnsOk, String dnsIp,
+                                     Boolean relayTcpOk, String transport,
+                                     int httpCode, long elapsedMs, Labels labels) {
         final Diagnosis d = new Diagnosis(attempt, elapsedMs);
 
         if (host == null || host.length() == 0) {
-            d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_URL, "invalid URL"));
+            d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_URL, labels.invalidUrl()));
             d.headline = Diagnosis.HL_INVALID_URL;
             return d;
         }
@@ -121,49 +180,49 @@ public final class Diagnostics {
         d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_URL, label));
 
         final boolean implied = httpCode >= 400; // we got a response: lower layers worked
-        final String impliedDetail = "implied (relay answered)";
+        final String impliedDetail = labels.implied();
 
         // Internet
         if (implied) {
             d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_INTERNET, impliedDetail));
         } else if (internetOk == null) {
-            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_INTERNET, "not checked"));
+            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_INTERNET, labels.notChecked()));
         } else if (internetOk) {
             d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_INTERNET,
                     "TCP " + PROBE_HOST + ":" + PROBE_PORT));
         } else {
             d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_INTERNET,
-                    "TCP " + PROBE_HOST + ":" + PROBE_PORT + " unreachable"));
+                    labels.tcpUnreachable("TCP " + PROBE_HOST + ":" + PROBE_PORT)));
         }
 
         // DNS
         if (implied) {
             d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_DNS, impliedDetail));
         } else if (Boolean.FALSE.equals(dnsOk)) {
-            d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_DNS, host + " not resolvable"));
+            d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_DNS, labels.dnsFailed(host)));
         } else if (Boolean.TRUE.equals(dnsOk)) {
             d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_DNS,
                     dnsIp != null && dnsIp.length() > 0 ? host + " -> " + dnsIp : host));
         } else {
-            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_DNS, "not checked"));
+            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_DNS, labels.notChecked()));
         }
 
         // Relay port
         if (implied) {
             d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_RELAY_PORT, impliedDetail));
         } else if (Boolean.TRUE.equals(relayTcpOk)) {
-            d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_RELAY_PORT, label + " open"));
+            d.checks.add(Diagnosis.Check.ok(Diagnosis.Check.KIND_RELAY_PORT, labels.portOpen(label)));
         } else if (Boolean.FALSE.equals(relayTcpOk)) {
-            d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_RELAY_PORT, label + " unreachable"));
+            d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_RELAY_PORT, labels.portClosed(label)));
         } else {
-            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_RELAY_PORT, "not checked"));
+            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_RELAY_PORT, labels.notChecked()));
         }
 
         // HTTP answer
         if (httpCode >= 400) {
             d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_HTTP, "HTTP " + httpCode));
         } else {
-            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_HTTP, "no response"));
+            d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_HTTP, labels.noResponse()));
         }
 
         // Headline (most likely root cause first)
@@ -195,21 +254,26 @@ public final class Diagnostics {
         } else {
             d.headline = Diagnosis.HL_OTHER;
             d.headlineText = transport != null && transport.length() > 0
-                    ? transport : "unknown error";
+                    ? transport : labels.unknownError();
         }
         return d;
     }
 
     /** Minimal diagnosis used when the normal one could not be built. */
     public static Diagnosis fallback(int attempt, String reason, long nextRetryMs) {
+        return fallback(attempt, reason, nextRetryMs, new English());
+    }
+
+    public static Diagnosis fallback(int attempt, String reason, long nextRetryMs,
+                                     Labels labels) {
         final Diagnosis d = new Diagnosis(attempt, 0);
-        d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_INTERNET, "diagnostic unavailable"));
-        d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_DNS, "diagnostic unavailable"));
-        d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_RELAY_PORT, "diagnostic unavailable"));
+        d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_INTERNET, labels.diagnosticUnavailable()));
+        d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_DNS, labels.diagnosticUnavailable()));
+        d.checks.add(Diagnosis.Check.skip(Diagnosis.Check.KIND_RELAY_PORT, labels.diagnosticUnavailable()));
         d.checks.add(Diagnosis.Check.fail(Diagnosis.Check.KIND_HTTP,
-                (reason != null && reason.length() > 0) ? reason : "unknown error"));
+                (reason != null && reason.length() > 0) ? reason : labels.unknownError()));
         d.headline = Diagnosis.HL_OTHER;
-        d.headlineText = (reason != null && reason.length() > 0) ? reason : "unknown error";
+        d.headlineText = (reason != null && reason.length() > 0) ? reason : labels.unknownError();
         d.nextRetryMs = nextRetryMs;
         return d;
     }

@@ -49,4 +49,19 @@
     <string name="settings_delay_hint">Compensates the audio delay (e.g. when the music arrives ~1 s late in the car). Tap the value to reset to 0.</string>
     <string name="settings_save">SAVE</string>
     <string name="settings_saved">Saved</string>
+
+    <!-- Free-text fragments of the diagnostic check list (see Diagnostics.Labels) -->
+    <string name="diag_detail_invalid_url">invalid URL</string>
+    <string name="diag_detail_implied">implied (relay answered)</string>
+    <string name="diag_detail_not_checked">not checked</string>
+    <string name="diag_detail_tcp_unreachable">%1$s unreachable</string>
+    <string name="diag_detail_dns_failed">%1$s not resolvable</string>
+    <string name="diag_detail_port_open">%1$s open</string>
+    <string name="diag_detail_port_closed">%1$s unreachable</string>
+    <string name="diag_detail_no_response">no response</string>
+    <string name="diag_detail_unavailable">diagnostic unavailable</string>
+    <string name="diag_detail_unknown_error">unknown error</string>
+
+    <!-- Lyrics-delay value in the settings screen (locale decimal separator) -->
+    <string name="settings_delay_value">%1$d.%2$d s</string>
 </resources>

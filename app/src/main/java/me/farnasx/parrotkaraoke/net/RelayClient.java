@@ -41,6 +41,8 @@ public final class RelayClient {
     private static final long PLAYING_NO_LINE_DELAY_MS = 3000;
 
     private final Callback callback;
+    /** Localized words for the diagnostic check details (device locale). */
+    private final Diagnostics.Labels labels;
     private final Handler main = new Handler(Looper.getMainLooper());
 
     // Configuration, re-read on every poll: the SettingsActivity can change it
@@ -54,12 +56,13 @@ public final class RelayClient {
     private Thread thread;
 
     public RelayClient(Callback callback, String url, String user, String pass,
-                        int baseIntervalMs) {
+                        int baseIntervalMs, Diagnostics.Labels labels) {
         this.callback = callback;
         this.url = url;
         this.user = user;
         this.pass = pass;
         this.baseIntervalMs = Math.max(250, baseIntervalMs);
+        this.labels = (labels != null) ? labels : new Diagnostics.English();
     }
 
     public synchronized void start() {
@@ -106,7 +109,8 @@ public final class RelayClient {
                 // Run the connectivity probes and build the diagnosis for the
                 // UI. Guarded: a failing diagnostic must never kill the poller.
                 try {
-                    diagnosis = Diagnostics.failedAttempt(url, consecutiveErrors, e, delayMs);
+                    diagnosis = Diagnostics.failedAttempt(
+                            url, consecutiveErrors, e, delayMs, labels);
                 } catch (Exception diagEx) {
                     diagnosis = null;
                 }
@@ -132,7 +136,7 @@ public final class RelayClient {
                         } else {
                             // The diagnostic itself failed: still show the error.
                             callback.onDiagnosis(Diagnostics.fallback(
-                                    attemptCount, reason, backoffMs));
+                                    attemptCount, reason, backoffMs, labels));
                         }
                     }
                 });
