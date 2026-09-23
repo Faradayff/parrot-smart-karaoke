@@ -19,6 +19,7 @@ public class StatusParserTest {
     private static final String FULL = "{"
             + "\"ok\":true,\"auth\":true,\"playing\":true,\"positionMs\":42000,"
             + "\"updated\":\"2026-09-22T19:00:00Z\","
+            + "\"version\":7,"
             + "\"track\":{\"id\":\"t1\",\"name\":\"Bohemian Rhapsody\",\"artist\":\"Queen\","
             + "\"album\":\"A Night at the Opera\",\"uri\":\"spotify:track:t1\",\"durMs\":354000,"
             + "\"cover\":[\"https://i.scdn.co/image/abc\"]},"
@@ -54,6 +55,26 @@ public class StatusParserTest {
         assertEquals("Is this just fantasy?", s.lines.get(1).text);
         assertEquals(1, s.nextLines.size());
         assertEquals("", s.plain);
+        assertEquals(7L, s.version);
+    }
+
+    @Test
+    public void missingVersionStaysMinusOne() {
+        Status s = StatusParser.parse("{\"ok\":true,\"auth\":true,\"playing\":false}");
+        assertEquals(-1L, s.version);
+    }
+
+    @Test
+    public void nullVersionStaysMinusOne() {
+        Status s = StatusParser.parse("{\"ok\":true,\"version\":null}");
+        assertEquals(-1L, s.version);
+    }
+
+    @Test
+    public void zeroVersionIsAValidVersion() {
+        // 0 is a legitimate first state version: wait mode must stay enabled.
+        Status s = StatusParser.parse("{\"ok\":true,\"version\":0}");
+        assertEquals(0L, s.version);
     }
 
     @Test

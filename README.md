@@ -17,7 +17,7 @@ Division of responsibilities:
 |---|---|---|
 | Spotify OAuth token | yes (holds and refreshes it) | no |
 | Query LRCLIB and resolve the current line | yes (`line`, `lineText`, `lines`, `nextLines`) | no |
-| HTTP | server | client (polling) |
+| HTTP | server | client (long-poll, classic polling fallback) |
 | UI | status HTML / APIs | karaoke band on the car screen |
 
 The app **only consumes `GET /status`** from the relay:
@@ -32,9 +32,26 @@ GET /status  →  200 JSON
   "lineText": "…",           // text of that line, ready to render
   "lines":  [ { "t": ms, "text": "…" }, … ],
   "nextLines": [ …up to 3… ],
+  "version": 42,             // state version (incremented when the visible state changes)
   "plain": "only if no synced lyrics exist"
 }
 ```
+
+**Long-poll ("wait") mode** (when the relay implements `version`): the app also
+accepts holding a request open until the state changes, so it stops polling at a
+fixed interval and gets one response **per state change** instead — the right
+trade for the old head unit:
+
+```
+GET /status?wait=1&timeoutMs=8000&sinceVersion=42
+    → 200 JSON (current state + version) once `version` > 42,
+       or after `timeoutMs`, or immediately when `sinceVersion` is -1/absent
+```
+
+A relay without the feature ignores the parameters and answers immediately
+without a `version` field; the app then keeps its classic adaptive polling
+(≈1 s while a line is advancing, 3–5 s when paused or waiting for a track,
+5/10/15 s backoff on transport errors) and permanent retries.
 
 ## Why HTTP + Basic Auth
 
@@ -61,8 +78,11 @@ Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not tru
 4. Hit play: the app shows the current line in green, the 2 previous ones dimmed,
    and up to 3 upcoming lines, with cover art and status (ONLINE / PAUSED / OFFLINE / auth error).
 
-Network behavior: adaptive polling (≈1 s while a line is advancing, 3–5 s when paused
-or waiting for a track, 5/10/15 s backoff on transport errors) and permanent retries.
+Network behavior: with a wait-capable relay the app long-polls — one request
+per state change, held open at most `timeoutMs` at a time. With an older relay
+it falls back to adaptive polling (≈1 s while a line is advancing, 3–5 s when
+paused or waiting for a track, 5/10/15 s backoff on transport errors) and
+permanent retries.
 Without a connection it shows a live diagnosis on every attempt — general internet
 reachability (TCP probe to a public host), DNS of the relay, the relay port, and the
 HTTP answer (e.g. 401 = credentials rejected) — with the attempt number and
@@ -116,13 +136,13 @@ on GitHub Actions and creates the release automatically.
   `minSdk 10` / `targetSdk 10`, AGP 8.5 + Gradle 8.7 + JDK 17.
 - Structure:
   - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM).
-  - `net/` — `Http` (HttpURLConnection + Base64, typed `HttpException` with the status code), `RelayClient` (polling loop with adaptive intervals), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
+  - `net/` — `Http` (HttpURLConnection + Base64, typed `HttpException` with the status code, per-call read timeout), `RelayClient` (long-poll/wait loop when the relay advertises `version`, classic adaptive polling otherwise; quiet retries before the first diagnosis), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
   - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown; the full check list is shown only when the Settings "Debug mode" toggle is on, otherwise just the short headline — the attempt number stays visible in both).
   - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps), Debug mode toggle.
   - `util/Prefs` — keys and default values.
 - Build and tests:
   ```
-  ./gradlew :app:testDebugUnitTest   # parser + diagnostics unit tests (28 cases)
+  ./gradlew :app:testDebugUnitTest   # parser, diagnostics, relay-client and lyric-index unit tests (42 cases)
   ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
   ```
   - **Local development builds**: the relay defaults (URL, Basic Auth user/pass)

@@ -26,4 +26,12 @@ public final class Status {
 
     /** Unsynced full-lyrics text (present only when there is no synced version). */
     public String plain = "";
+
+    /**
+     * Relay state version (long-poll / "wait" mode). The relay increments it
+     * every time the visible state changes (line, track, playing, auth…).
+     * <p>-1 = the relay did not send the field (older relay: classic polling).
+     * Its mere presence (≥ 0) is the client's feature detection.
+     */
+    public long version = -1L;
 }

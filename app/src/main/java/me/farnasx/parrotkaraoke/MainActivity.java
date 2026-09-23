@@ -23,6 +23,7 @@ import me.farnasx.parrotkaraoke.util.Prefs;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.IdentityHashMap;
 import java.util.Locale;
 
 /**
@@ -58,6 +59,25 @@ public class MainActivity extends Activity {
 
     private RelayClient client;
     private String lastTrackId;
+
+    /**
+     * Last text pushed to each TextView, so a poll that brings back unchanged
+     * content is a true no-op: on this old head unit every setText is a
+     * relayout + redraw, and repeated polls with the same words used to cost
+     * a full layout/render cycle for nothing.
+     */
+    private final IdentityHashMap<TextView, String> lastText =
+            new IdentityHashMap<TextView, String>();
+
+    private void setTextViewText(TextView v, CharSequence text) {
+        String s = String.valueOf(text);
+        String prev = lastText.get(v);
+        if (prev != null && prev.equals(s)) {
+            return;
+        }
+        v.setText(text);
+        lastText.put(v, s);
+    }
 
     /** Audio-delay compensation (ms) applied to the active line; from settings. */
     private int delayMs = Prefs.DEFAULT_DELAY_MS;
@@ -164,18 +184,18 @@ public class MainActivity extends Activity {
     }
 
     private void showBoot() {
-        title.setText(R.string.app_name);
-        subtitle.setText("");
+        setTextViewText(title, getString(R.string.app_name));
+        setTextViewText(subtitle, "");
         showPlainMessage(getString(R.string.connecting), "");
-        footer.setText(R.string.footer_connecting);
+        setTextViewText(footer, getString(R.string.footer_connecting));
     }
 
     private void showPlainMessage(String main, String detail) {
         showView(msgBox);
-        msgMain.setText(main);
+        setTextViewText(msgMain, main);
         if (nonEmpty(detail)) {
             msgDetail.setVisibility(View.VISIBLE);
-            msgDetail.setText(detail);
+            setTextViewText(msgDetail, detail);
         } else {
             msgDetail.setVisibility(View.GONE);
         }
@@ -192,7 +212,7 @@ public class MainActivity extends Activity {
         // Debug off: just the short headline. Debug on: the full check list.
         // The attempt number (footer) and the retry countdown stay in both.
         showPlainMessage(headlineFor(d), debugMode ? detailFor(d) : "");
-        footer.setText(getString(R.string.footer_offline_attempt, d.attempt));
+        setTextViewText(footer, getString(R.string.footer_offline_attempt, d.attempt));
 
         if (d.nextRetryMs > 0) {
             retryDueAt = System.currentTimeMillis() + d.nextRetryMs;
@@ -324,17 +344,17 @@ public class MainActivity extends Activity {
                     ? (s.error == null ? "" : s.error)
                     : getString(R.string.auth_error_detail);
             showPlainMessage(getString(R.string.relay_error), detail);
-            footer.setText(R.string.footer_relay_error);
+            setTextViewText(footer, getString(R.string.footer_relay_error));
             return;
         }
 
         if (s.track == null) {
             lastTrackId = null;
-            title.setText(R.string.app_name);
-            subtitle.setText("");
+            setTextViewText(title, getString(R.string.app_name));
+            setTextViewText(subtitle, "");
             cover.setImageBitmap(null);
             showPlainMessage(getString(R.string.no_track), "");
-            footer.setText(R.string.footer_online);
+            setTextViewText(footer, getString(R.string.footer_online));
             return;
         }
 
@@ -372,13 +392,13 @@ public class MainActivity extends Activity {
             // Show the relay error (e.g. a transient lrclib 503) as detail if any.
             showPlainMessage(getString(R.string.no_lyrics),
                     nonEmpty(s.error) ? s.error : "");
-            footer.setText(active ? R.string.footer_online : R.string.footer_paused);
+            setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
         }
     }
 
     private void updateHeader(final Track t) {
         String nm = nonEmpty(t.name) ? t.name : t.artist;
-        title.setText(nonEmpty(nm) ? nm : getString(R.string.unknown_title));
+        setTextViewText(title, nonEmpty(nm) ? nm : getString(R.string.unknown_title));
         StringBuilder sb = new StringBuilder();
         if (nonEmpty(t.artist)) {
             sb.append(t.artist);
@@ -391,7 +411,7 @@ public class MainActivity extends Activity {
             }
             sb.append(t.album);
         }
-        subtitle.setText(sb.toString());
+        setTextViewText(subtitle, sb.toString());
 
         final String tag = lastTrackId;
         cover.setImageBitmap(null);
@@ -425,7 +445,7 @@ public class MainActivity extends Activity {
 
         String cur = nonEmpty(effText) ? effText
                 : (n > 0 ? all.get(idx).text : "");
-        current.setText(cur);
+        setTextViewText(current, cur);
 
         for (int i = 0; i < bandNext.length; i++) {
             String xt = "";
@@ -445,24 +465,25 @@ public class MainActivity extends Activity {
         next2.setTextColor(othColor);
         next3.setTextColor(othColor);
 
-        footer.setText(active ? R.string.footer_online : R.string.footer_paused);
+        setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
     }
 
     private void setBandSlot(TextView v, String text) {
-        if (!nonEmpty(text)) {
-            v.setVisibility(View.GONE);
-        } else {
-            v.setVisibility(View.VISIBLE);
-            v.setText(text);
+        boolean show = nonEmpty(text);
+        v.setVisibility(show ? View.VISIBLE : View.GONE);
+        // Hidden slots keep their text (never cleared), so an unchanged text
+        // can safely skip the setText on the way back to visible.
+        if (show) {
+            setTextViewText(v, text);
         }
     }
 
     private void renderPlain(String text, boolean active) {
         showView(plainScroll);
-        plainText.setText(text);
+        setTextViewText(plainText, text);
         plainText.setTextColor(active ? COLOR_PLAIN_ACTIVE : COLOR_PLAIN_PAUSED);
         plainScroll.scrollTo(0, 0);
-        footer.setText(active ? R.string.footer_online : R.string.footer_paused);
+        setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
     }
 
     private static boolean nonEmpty(String s) {

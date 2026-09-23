@@ -58,16 +58,24 @@ public final class Http {
     private Http() {
     }
 
+    public static byte[] get(String url, String user, String pass) throws IOException {
+        return get(url, user, pass, READ_TIMEOUT_MS);
+    }
+
     /**
      * GETs {@code url} and returns the body bytes.
      *
+     * @param readTimeoutMs socket read timeout for this call. A long-poll
+     *                      response may legitimately take the relay's whole
+     *                      wait period before any byte arrives.
      * @throws IOException on network errors or non-2xx status codes
      */
-    public static byte[] get(String url, String user, String pass) throws IOException {
+    public static byte[] get(String url, String user, String pass,
+                             int readTimeoutMs) throws IOException {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         try {
             c.setConnectTimeout(CONNECT_TIMEOUT_MS);
-            c.setReadTimeout(READ_TIMEOUT_MS);
+            c.setReadTimeout((readTimeoutMs > 0) ? readTimeoutMs : READ_TIMEOUT_MS);
             c.setInstanceFollowRedirects(true);
             c.setRequestProperty("Accept", "application/json");
             c.setRequestProperty("User-Agent", "parrot-karaoke/1.0 (Android)");

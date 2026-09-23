@@ -48,6 +48,9 @@ public final class StatusParser {
         s.nextLines = parseLines(o.optJSONArray("nextLines"));
         s.plain = o.optString("plain", "");
 
+        // Long-poll support: "version": null or non-numeric keeps the -1 default.
+        s.version = o.optLong("version", -1L);
+
         JSONObject t = o.optJSONObject("track");
         if (t != null) {
             Track tr = new Track();
