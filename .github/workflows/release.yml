@@ -63,7 +63,9 @@ jobs:
 
       - name: Generate changelog
         run: |
-          LATEST=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          # Last release before this one (the current tag points at HEAD, so
+          # it must be excluded). No previous tag -> list the whole history.
+          LATEST=$(git tag --sort=-v:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
           if [ -n "$LATEST" ]; then
             git log "${LATEST}..HEAD" --reverse --pretty='- %s' > CHANGELOG.md
           else
