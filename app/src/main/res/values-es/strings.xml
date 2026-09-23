@@ -50,6 +50,7 @@
     <string name="settings_poll">Intervalo de consulta (ms)</string>
     <string name="settings_delay">Retardo de la letra (s)</string>
     <string name="settings_delay_hint">Compensa el retardo del audio (p. ej., cuando la música llega ~1 s tarde en el coche). Toca el valor para restablecerlo a 0.</string>
+    <string name="settings_debug">Modo debug: muestra la lista completa de comprobaciones en el error (internet, DNS, puerto, respuesta HTTP, tiempo)</string>
     <string name="settings_save">GUARDAR</string>
     <string name="settings_saved">Guardado</string>
 
@@ -64,6 +65,7 @@
     <string name="diag_detail_no_response">sin respuesta</string>
     <string name="diag_detail_unavailable">diagnóstico no disponible</string>
     <string name="diag_detail_unknown_error">error desconocido</string>
+    <string name="diag_detail_no_auth_header">sin cabecera Authorization (usuario o pass vacíos)</string>
 
     <!-- Lyrics-delay value in the settings screen (comma decimal separator) -->
     <string name="settings_delay_value">%1$d,%2$d s</string>

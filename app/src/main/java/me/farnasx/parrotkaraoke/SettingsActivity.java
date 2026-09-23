@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,6 +21,7 @@ public class SettingsActivity extends Activity {
     private EditText passEt;
     private EditText pollEt;
     private TextView delayValue;
+    private CheckBox debugCh;
 
     /** Live delay value in ms, adjusted with -/+ and persisted on SAVE. */
     private int delayMs;
@@ -33,6 +35,7 @@ public class SettingsActivity extends Activity {
         passEt = (EditText) findViewById(R.id.setPass);
         pollEt = (EditText) findViewById(R.id.setPoll);
         delayValue = (TextView) findViewById(R.id.delayValue);
+        debugCh = (CheckBox) findViewById(R.id.setDebug);
 
         // android:inputType is an API 11 manifest attribute; set it programmatically
         // so this also works on 2.3.x (InputType API 1).
@@ -46,6 +49,8 @@ public class SettingsActivity extends Activity {
 
         delayMs = Prefs.getInt(this, Prefs.KEY_DELAY_MS, Prefs.DEFAULT_DELAY_MS);
         updateDelayDisplay();
+
+        debugCh.setChecked(Prefs.getBool(this, Prefs.KEY_DEBUG, Prefs.DEFAULT_DEBUG));
 
         Button delayMinus = (Button) findViewById(R.id.btnDelayMinus);
         delayMinus.setOnClickListener(new View.OnClickListener() {
@@ -118,6 +123,7 @@ public class SettingsActivity extends Activity {
         ed.putString(Prefs.KEY_PASS, passEt.getText().toString().trim());
         ed.putInt(Prefs.KEY_POLL_MS, ms);
         ed.putInt(Prefs.KEY_DELAY_MS, delayMs);
+        ed.putBoolean(Prefs.KEY_DEBUG, debugCh.isChecked());
         ed.commit();
 
         Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();

@@ -126,6 +126,15 @@
             android:textColor="@color/subtitle"
             android:textSize="12sp" />
 
+        <CheckBox
+            android:id="@+id/setDebug"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/settings_debug"
+            android:textColor="@color/title"
+            android:textSize="14sp" />
+
         <Button
             android:id="@+id/btnSave"
             android:layout_width="wrap_content"

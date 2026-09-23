@@ -47,6 +47,7 @@
     <string name="settings_poll">Polling interval (ms)</string>
     <string name="settings_delay">Lyrics delay (s)</string>
     <string name="settings_delay_hint">Compensates the audio delay (e.g. when the music arrives ~1 s late in the car). Tap the value to reset to 0.</string>
+    <string name="settings_debug">Debug mode: show the full diagnostic list on errors (internet, DNS, port, HTTP answer, elapsed time)</string>
     <string name="settings_save">SAVE</string>
     <string name="settings_saved">Saved</string>
 
@@ -61,6 +62,7 @@
     <string name="diag_detail_no_response">no response</string>
     <string name="diag_detail_unavailable">diagnostic unavailable</string>
     <string name="diag_detail_unknown_error">unknown error</string>
+    <string name="diag_detail_no_auth_header">no Authorization header sent (user/pass empty)</string>
 
     <!-- Lyrics-delay value in the settings screen (locale decimal separator) -->
     <string name="settings_delay_value">%1$d.%2$d s</string>

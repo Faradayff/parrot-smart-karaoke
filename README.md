@@ -117,8 +117,8 @@ on GitHub Actions and creates the release automatically.
 - Structure:
   - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM).
   - `net/` — `Http` (HttpURLConnection + Base64, typed `HttpException` with the status code), `RelayClient` (polling loop with adaptive intervals), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
-  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown).
-  - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps).
+  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown; the full check list is shown only when the Settings "Debug mode" toggle is on, otherwise just the short headline — the attempt number stays visible in both).
+  - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps), Debug mode toggle.
   - `util/Prefs` — keys and default values.
 - Build and tests:
   ```

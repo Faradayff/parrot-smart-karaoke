@@ -14,6 +14,7 @@ if (devPropsFile.canRead()) {
 def devUrl  = devProps.getProperty('relay.url', '')
 def devUser = devProps.getProperty('relay.user', '')
 def devPass = devProps.getProperty('relay.pass', '')
+def debugHttpLog = devProps.getProperty('debug.http_log', 'false') == 'true'
 
 android {
     namespace 'me.farnasx.parrotkaraoke'
@@ -31,6 +32,9 @@ android {
         buildConfigField "String", "DEFAULT_RELAY_URL", "\"${devUrl}\""
         buildConfigField "String", "DEFAULT_RELAY_USER", "\"${devUser}\""
         buildConfigField "String", "DEFAULT_RELAY_PASS", "\"${devPass}\""
+        // Development builds append each attempt (incl. the exact
+        // Authorization value sent) to /sdcard/parrot-karaoke-debug.log.
+        buildConfigField "boolean", "DEBUG_HTTP_LOG", "${debugHttpLog ? 'true' : 'false'}"
     }
 
     buildTypes {

@@ -63,6 +63,15 @@ public class MainActivity extends Activity {
     /** Audio-delay compensation (ms) applied to the active line; from settings. */
     private int delayMs = Prefs.DEFAULT_DELAY_MS;
 
+    /**
+     * Debug mode (settings toggle): when off, error screens show only the
+     * short headline ("no internet", "relay down", "credentials rejected");
+     * when on, the full diagnostic list is appended (checks, HTTP answer,
+     * elapsed time). Re-read on every resume so a change in Settings applies
+     * immediately.
+     */
+    private boolean debugMode = Prefs.DEFAULT_DEBUG;
+
     /** Live countdown text for "next retry in N s", ticked by a 500 ms timer. */
     private TextView retryLine;
     private final android.os.Handler tickerHandler =
@@ -136,6 +145,7 @@ public class MainActivity extends Activity {
         super.onResume();
         // Reload so a value changed in the settings screen applies immediately.
         delayMs = Prefs.getInt(this, Prefs.KEY_DELAY_MS, Prefs.DEFAULT_DELAY_MS);
+        debugMode = Prefs.getBool(this, Prefs.KEY_DEBUG, Prefs.DEFAULT_DEBUG);
     }
 
     public void onDestroy() {
@@ -181,7 +191,9 @@ public class MainActivity extends Activity {
      * the client works in the background.
      */
     private void showDiagnosis(Diagnosis d) {
-        showPlainMessage(headlineFor(d), detailFor(d));
+        // Debug off: just the short headline. Debug on: the full check list.
+        // The attempt number (footer) and the retry countdown stay in both.
+        showPlainMessage(headlineFor(d), debugMode ? detailFor(d) : "");
         footer.setText(getString(R.string.footer_offline_attempt, d.attempt));
 
         if (d.nextRetryMs > 0) {

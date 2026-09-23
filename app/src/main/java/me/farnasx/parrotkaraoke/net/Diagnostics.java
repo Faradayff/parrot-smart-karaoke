@@ -65,6 +65,9 @@ public final class Diagnostics {
         String diagnosticUnavailable();
 
         String unknownError();
+
+        /** 401 detail when the request carried no Authorization header at all. */
+        String noAuthHeader();
     }
 
     /** Default word choices (English), used on the JVM and as fallback. */
@@ -79,6 +82,8 @@ public final class Diagnostics {
         public String noResponse() { return "no response"; }
         public String diagnosticUnavailable() { return "diagnostic unavailable"; }
         public String unknownError() { return "unknown error"; }
+
+        public String noAuthHeader() { return "no Authorization header sent (user/pass empty)"; }
     }
 
     /** Runs the probes for a failed attempt and returns the diagnosis. */
@@ -138,6 +143,26 @@ public final class Diagnostics {
         final Diagnosis d = diagnose(host, port, attempt,
                 internet, dns, dnsIp, relayTcp, transport, httpCode,
                 System.currentTimeMillis() - start, labels);
+
+        // 401: narrow it down further — did this request even carry the
+        // Authorization header? That separates "bad credentials" from
+        // "credentials never sent" (the classic car/head-unit failure).
+        if (httpError && httpCode == 401) {
+            Http.HttpException he = (Http.HttpException) e;
+            String authDetail;
+            if (he.authSent) {
+                authDetail = "HTTP 401 (sent user: '" + he.authUser + "')";
+            } else {
+                authDetail = "HTTP 401 — " + labels.noAuthHeader();
+            }
+            for (int i = 0; i < d.checks.size(); i++) {
+                if (d.checks.get(i).kind == Diagnosis.Check.KIND_HTTP) {
+                    d.checks.set(i, Diagnosis.Check.fail(Diagnosis.Check.KIND_HTTP, authDetail));
+                    break;
+                }
+            }
+        }
+
         d.nextRetryMs = nextRetryMs;
         return d;
     }

@@ -7,3 +7,8 @@
 relay.url=http://your-relay-host/status
 relay.user=your-basic-auth-user
 relay.pass=your-basic-auth-password
+
+# Optional: also append every request (URL, user, and the exact
+# Authorization value sent) to /sdcard/parrot-karaoke-debug.log — useful
+# when chasing 401s on the car.
+#debug.http_log=true

@@ -56,4 +56,8 @@ public final class ResourceLabels implements Diagnostics.Labels {
     public String unknownError() {
         return ctx.getString(R.string.diag_detail_unknown_error);
     }
+
+    public String noAuthHeader() {
+        return ctx.getString(R.string.diag_detail_no_auth_header);
+    }
 }

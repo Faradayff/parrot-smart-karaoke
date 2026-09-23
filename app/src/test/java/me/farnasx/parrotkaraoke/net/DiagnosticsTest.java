@@ -42,6 +42,24 @@ public class DiagnosticsTest {
     }
 
     @Test
+    public void http401WithoutAnAuthHeaderPointsOutTheMissingCredentials() {
+        Http.HttpException he = new Http.HttpException(401, "", null, false);
+        Diagnosis d = Diagnostics.failedAttempt("http://lyrics.example/status", 1, he, 5000);
+        assertEquals(Diagnosis.HL_CREDENTIALS, d.headline);
+        assertEquals("HTTP 401 — no Authorization header sent (user/pass empty)",
+                byKind(d, Diagnosis.Check.KIND_HTTP).detail);
+    }
+
+    @Test
+    public void http401WithSentAuthShowsTheUser() {
+        Http.HttpException he = new Http.HttpException(401, "", "faraday", true);
+        Diagnosis d = Diagnostics.failedAttempt("http://lyrics.example/status", 1, he, 5000);
+        assertEquals(Diagnosis.HL_CREDENTIALS, d.headline);
+        assertEquals("HTTP 401 (sent user: 'faraday')",
+                byKind(d, Diagnosis.Check.KIND_HTTP).detail);
+    }
+
+    @Test
     public void http403IsForbidden() {
         assertEquals(Diagnosis.HL_FORBIDDEN, diagnose(null, null, null, null, null, 403).headline);
     }

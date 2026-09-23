@@ -20,11 +20,19 @@ public final class Prefs {
     public static final String KEY_PASS = "relay_pass";
     public static final String KEY_POLL_MS = "poll_ms";
     public static final String KEY_DELAY_MS = "lyrics_delay_ms";
+    public static final String KEY_DEBUG = "debug_mode";
 
     public static final String DEFAULT_URL = BuildConfig.DEFAULT_RELAY_URL;
     public static final String DEFAULT_USER = BuildConfig.DEFAULT_RELAY_USER;
     public static final String DEFAULT_PASS = BuildConfig.DEFAULT_RELAY_PASS;
     public static final int DEFAULT_POLL_MS = 1000;
+
+    /**
+     * Debug mode (Settings toggle): when on, the error screen shows the full
+     * diagnostic list (checks, HTTP answer, elapsed time); when off, only the
+     * short headline is shown. The attempt number stays visible in both.
+     */
+    public static final boolean DEFAULT_DEBUG = false;
 
     /** Audio-delay compensation for the lyrics, in milliseconds. */
     public static final int DEFAULT_DELAY_MS = 0;
@@ -46,5 +54,9 @@ public final class Prefs {
 
     public static int getInt(Context ctx, String key, int def) {
         return sp(ctx).getInt(key, def);
+    }
+
+    public static boolean getBool(Context ctx, String key, boolean def) {
+        return sp(ctx).getBoolean(key, def);
     }
 }
