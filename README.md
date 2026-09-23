@@ -47,8 +47,9 @@ Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not tru
 
 1. Have the relay running and an HTTP+Basic Auth vhost pointing at `GET /status`
    (see the [relay's README](https://github.com/Faradayff/spotify-lyrics-relay)).
-2. Copy `parrot-karaoke.apk` (or the APK from `app/build/outputs/apk/debug/`) to a USB
-   drive and install it from the head unit's file manager, or:
+2. Download `parrot-karaoke.apk` from the
+   [latest release](https://github.com/Faradayff/parrot-smart-karaoke/releases)
+   and install it from the head unit's file manager (USB drive), or:
     ```
     adb install parrot-karaoke.apk
     ```
@@ -84,6 +85,19 @@ Adding more languages: copy `res/values-es/strings.xml` to
 `res/values-<lang>/strings.xml`, translate it, and translate the fragments in
 `ResourceLabels` (or add a new `Diagnostics.Labels` implementation if the
 word choices do not fit the resources).
+
+## Releases
+
+Every change is published as a [GitHub Release](https://github.com/Faradayff/parrot-smart-karaoke/releases)
+with the installable `parrot-karaoke.apk`, its version, and a changelog
+(commits since the previous release). To publish one:
+
+1. Bump `versionName`/`versionCode` in `app/build.gradle`.
+2. Commit the change.
+3. Tag and push: `git tag v<versionName> && git push origin v<versionName>`.
+
+The `Release` workflow (`.github/workflows/release.yml`) then builds the APK
+on GitHub Actions and creates the release automatically.
 
 ## Development
 
