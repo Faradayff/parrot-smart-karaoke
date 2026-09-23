@@ -30,8 +30,27 @@ jobs:
 
       - name: Install Android SDK components
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          # Find a preinstalled cmdlinetools sdkmanager if there is one...
+          SM=""
+          for d in "${ANDROID_HOME:-}" /usr/local/lib/android/sdk /opt/android-sdk "$HOME/android-sdk"; do
+            if [ -n "$d" ] && [ -x "$d/cmdline-tools/latest/bin/sdkmanager" ]; then
+              SM="$d/cmdline-tools/latest/bin/sdkmanager"
+              break
+            fi
+          done
+          # ...otherwise download the command-line tools ourselves.
+          if [ -z "$SM" ]; then
+            export ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
+            mkdir -p "$ANDROID_HOME/cmdline-tools"
+            curl -fsSL -o /tmp/cmdline-tools.zip \
+              https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools
+            mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+            cp -r /tmp/cmdline-tools/cmdline-tools/* "$ANDROID_HOME/cmdline-tools/latest/"
+            SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          yes | "$SM" --licenses > /dev/null || true
+          "$SM" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Build APK
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
