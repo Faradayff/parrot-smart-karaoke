@@ -68,6 +68,17 @@ reachability (TCP probe to a public host), DNS of the relay, the relay port, and
 HTTP answer (e.g. 401 = credentials rejected) — with the attempt number and
 a running countdown of the next retry, so the screen never looks frozen.
 
+## Asteroid Tweaker (third-party app)
+
+This repo used to carry an unofficial build of **Asteroid Tweaker** in the root
+(`AsteroidTweaker-unoff.apk`, app v2.5, package `com.funky.asteroid.asteroidtweaker`)
+for convenient sideloading on the Asteroid. It is a **third-party head-unit
+utility, not part of this project**, used to tweak the head unit's system
+settings (it requests `WRITE_SETTINGS`, `RECEIVE_BOOT_COMPLETED`, and
+`REBOOT` permissions). The local copy has been removed from the repository to
+keep the root clean; keep it aside separately if you need it, and install it
+like any other APK.
+
 ## Localization
 
 English is the default (base resources in `res/values/`). When the device locale
