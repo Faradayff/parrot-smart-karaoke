@@ -43,7 +43,6 @@ public class MainActivity extends Activity {
     private TextView subtitle;
     private ImageView cover;
     private LinearLayout band;
-    private TextView prev2;
     private TextView prev1;
     private TextView current;
     private TextView next1;
@@ -94,7 +93,6 @@ public class MainActivity extends Activity {
         subtitle = (TextView) findViewById(R.id.subtitle);
         cover = (ImageView) findViewById(R.id.cover);
         band = (LinearLayout) findViewById(R.id.band);
-        prev2 = (TextView) findViewById(R.id.prev2);
         prev1 = (TextView) findViewById(R.id.prev1);
         current = (TextView) findViewById(R.id.current);
         next1 = (TextView) findViewById(R.id.next1);
@@ -422,7 +420,7 @@ public class MainActivity extends Activity {
             idx = n - 1;
         }
 
-        setBandSlot(prev2, (n > 0 && idx - 2 >= 0) ? all.get(idx - 2).text : "");
+        // One previous line above the big current one (see activity_main).
         setBandSlot(prev1, (n > 0 && idx - 1 >= 0) ? all.get(idx - 1).text : "");
 
         String cur = nonEmpty(effText) ? effText
@@ -442,7 +440,6 @@ public class MainActivity extends Activity {
         int curColor = active ? COLOR_CURRENT_ACTIVE : COLOR_CURRENT_PAUSED;
         int othColor = active ? COLOR_OTHER_ACTIVE : COLOR_OTHER_PAUSED;
         current.setTextColor(curColor);
-        prev2.setTextColor(othColor);
         prev1.setTextColor(othColor);
         next1.setTextColor(othColor);
         next2.setTextColor(othColor);

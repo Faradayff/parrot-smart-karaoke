@@ -75,7 +75,10 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- Karaoke band -->
+        <!-- Karaoke band: 1 previous line, the current (large) line with
+             breathing room so it never crowds the small neighbours, and up
+             to 3 upcoming lines. Sizes were trimmed slightly so long
+             phrases fit without being cut. -->
         <LinearLayout
             android:id="@+id/band"
             android:layout_width="match_parent"
@@ -84,40 +87,28 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/prev2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:layout_marginBottom="1dp"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:singleLine="true"
-                android:textColor="@color/other"
-                android:textSize="16sp" />
-
-            <TextView
                 android:id="@+id/prev1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:layout_marginBottom="2dp"
+                android:layout_marginBottom="8dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:singleLine="true"
                 android:textColor="@color/other"
-                android:textSize="20sp" />
+                android:textSize="18sp" />
 
             <TextView
                 android:id="@+id/current"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:layout_marginBottom="3dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="2"
                 android:textColor="@color/currentActive"
-                android:textSize="38sp"
+                android:textSize="34sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -130,7 +121,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:textColor="@color/other"
-                android:textSize="20sp" />
+                android:textSize="18sp" />
 
             <TextView
                 android:id="@+id/next2"
@@ -142,7 +133,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:textColor="@color/other"
-                android:textSize="16sp" />
+                android:textSize="15sp" />
 
             <TextView
                 android:id="@+id/next3"
@@ -154,7 +145,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:textColor="@color/other"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
         </LinearLayout>
 
         <!-- Plain (unsynced) lyrics -->
