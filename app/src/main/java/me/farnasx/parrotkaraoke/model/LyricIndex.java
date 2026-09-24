@@ -40,4 +40,23 @@ public final class LyricIndex {
         }
         return idx;
     }
+
+    /**
+     * The next {@code count} lines after index {@code idx} (up to the end of
+     * the list), so the caller can render the "coming up" band from the
+     * <em>effective</em> (delay-shifted) index instead of the relay's
+     * unshifted list.
+     *
+     * @return empty list when {@code lines} is empty or {@code idx} invalid
+     */
+    public static ArrayList<LyricLine> nextBlock(ArrayList<LyricLine> lines, int idx, int count) {
+        ArrayList<LyricLine> out = new ArrayList<LyricLine>();
+        if (lines == null || count <= 0 || idx < 0) {
+            return out;
+        }
+        for (int i = idx + 1; i < lines.size() && out.size() < count; i++) {
+            out.add(lines.get(i));
+        }
+        return out;
+    }
 }

@@ -42,7 +42,6 @@
     <string name="retry_in">Próximo reintento en %1$d s</string>
     <string name="retry_due_now">Reintentando…</string>
 
-    <string name="settings_open">AJUSTES</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_url">URL del relay (punto final /status)</string>
     <string name="settings_user">Usuario (Basic Auth)</string>

@@ -64,4 +64,37 @@ public class LyricIndexTest {
         assertEquals(-1, LyricIndex.indexOfLine(null, 10000, 0));
         assertEquals(-1, LyricIndex.indexOfLine(new ArrayList<LyricLine>(), 10000, 0));
     }
+
+    @Test
+    public void nextBlockFollowsEffectiveIndex() {
+        ArrayList<LyricLine> ls = lines();
+        // At position 10 s the relay considers index 1 active; unshifted
+        // "next" lines are 2 and 3.
+        int relayIdx = LyricIndex.indexOfLine(ls, 10000, 0);
+        assertEquals(2, LyricIndex.nextBlock(ls, relayIdx, 3).size());
+
+        // With a 1.2 s delay the effective index is 0: the band must follow
+        // line 0 — "Is this just fantasy?" first, not the relay's "Caught
+        // in a landslide" (which would be the 2nd-next line of the current).
+        int effIdx = LyricIndex.indexOfLine(ls, 10000, 1200);
+        ArrayList<LyricLine> effNext = LyricIndex.nextBlock(ls, effIdx, 3);
+        assertEquals(3, effNext.size());
+        assertEquals("Is this just fantasy?", effNext.get(0).text);
+        assertEquals("Caught in a landslide", effNext.get(1).text);
+        assertEquals("Open your eyes", effNext.get(2).text);
+    }
+
+    @Test
+    public void nextBlockClippedAtEnd() {
+        assertEquals("Open your eyes", LyricIndex.nextBlock(lines(), 2, 3).get(0).text);
+        assertEquals(1, LyricIndex.nextBlock(lines(), 2, 3).size());
+        assertEquals(0, LyricIndex.nextBlock(lines(), 3, 3).size());
+    }
+
+    @Test
+    public void nextBlockInvalidInput() {
+        assertEquals(0, LyricIndex.nextBlock(null, 0, 3).size());
+        assertEquals(0, LyricIndex.nextBlock(new ArrayList<LyricLine>(), 0, 3).size());
+        assertEquals(0, LyricIndex.nextBlock(lines(), -1, 3).size());
+    }
 }

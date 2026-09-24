@@ -39,7 +39,6 @@
     <string name="retry_in">Next retry in %1$d s</string>
     <string name="retry_due_now">Retrying…</string>
 
-    <string name="settings_open">SETTINGS</string>
     <string name="settings_title">Settings</string>
     <string name="settings_url">Relay URL (endpoint /status)</string>
     <string name="settings_user">User (Basic Auth)</string>

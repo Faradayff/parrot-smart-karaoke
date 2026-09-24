@@ -24,8 +24,8 @@ android {
         applicationId "me.farnasx.parrotkaraoke"
         minSdk 10
         targetSdk 10
-        versionCode 7
-        versionName "1.6-dev"
+        versionCode 10
+        versionName "1.7.0"
 
         // Defaults for the settings screen: empty in public builds,
         // preconfigured in local development builds.

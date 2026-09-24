@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -17,9 +18,11 @@ import me.farnasx.parrotkaraoke.model.Status;
 import me.farnasx.parrotkaraoke.model.Track;
 import me.farnasx.parrotkaraoke.net.CoverLoader;
 import me.farnasx.parrotkaraoke.net.Diagnosis;
+import me.farnasx.parrotkaraoke.net.Http;
 import me.farnasx.parrotkaraoke.net.RelayClient;
 import me.farnasx.parrotkaraoke.util.Prefs;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -57,8 +60,31 @@ public class MainActivity extends Activity {
     private TextView msgDetail;
     private TextView footer;
 
+    private ImageButton btnPrev;
+    private ImageButton btnPlayPause;
+    private ImageButton btnNext;
+
     private RelayClient client;
     private String lastTrackId;
+
+    /** Playback state reported by the relay; drives the play/pause icon. */
+    private boolean playing = false;
+
+    /** Last icon used by the play/pause button, so an unchanged state
+     *  never forces a relayout on this head unit. */
+    private int lastPlayIcon = -1;
+
+    /** Last enabled state of the transport row. */
+    private boolean controlsEnabled = true;
+
+    /**
+     * Relay credentials + base URL for the transport row: the same snapshot
+     * the client was built with (read once in onCreate, like the rest of the
+     * poller configuration).
+     */
+    private String relayUrl;
+    private String relayUser;
+    private String relayPass;
 
     /**
      * Last text pushed to each TextView, so a poll that brings back unchanged
@@ -86,10 +112,17 @@ public class MainActivity extends Activity {
      * Debug mode (settings toggle): when off, error screens show only the
      * short headline ("no internet", "relay down", "credentials rejected");
      * when on, the full diagnostic list is appended (checks, HTTP answer,
-     * elapsed time). Re-read on every resume so a change in Settings applies
-     * immediately.
+     * elapsed time). Re-read on every resume; if the failure screen is up it
+     * is redrawn at once so a change in Settings applies immediately.
      */
     private boolean debugMode = Prefs.DEFAULT_DEBUG;
+
+    /**
+     * Last failed attempt, kept so the failure screen can be redrawn against
+     * the current {@link #debugMode} (e.g. right after the user toggled it in
+     * Settings) without waiting for the next failed poll.
+     */
+    private Diagnosis lastDiagnosis;
 
     /** Live countdown text for "next retry in N s", ticked by a 500 ms timer. */
     private TextView retryLine;
@@ -136,11 +169,36 @@ public class MainActivity extends Activity {
             }
         });
 
+        btnPrev = (ImageButton) findViewById(R.id.btnPrev);
+        btnPlayPause = (ImageButton) findViewById(R.id.btnPlayPause);
+        btnNext = (ImageButton) findViewById(R.id.btnNext);
+
+        btnPrev.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                sendControl("prev");
+            }
+        });
+        btnPlayPause.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // The icon already reflects the last reported state, so the
+                // command is its opposite: playing → pause, paused → resume.
+                sendControl(playing ? "pause" : "resume");
+            }
+        });
+        btnNext.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                sendControl("next");
+            }
+        });
+
         showBoot();
 
         String url = Prefs.get(this, Prefs.KEY_URL, Prefs.DEFAULT_URL);
         String user = Prefs.get(this, Prefs.KEY_USER, Prefs.DEFAULT_USER);
         String pass = Prefs.get(this, Prefs.KEY_PASS, Prefs.DEFAULT_PASS);
+        relayUrl = url;
+        relayUser = user;
+        relayPass = pass;
         int ms = Prefs.getInt(this, Prefs.KEY_POLL_MS, Prefs.DEFAULT_POLL_MS);
         client = new RelayClient(new RelayClient.Callback() {
             public void onStatus(Status s) {
@@ -163,7 +221,15 @@ public class MainActivity extends Activity {
         super.onResume();
         // Reload so a value changed in the settings screen applies immediately.
         delayMs = Prefs.getInt(this, Prefs.KEY_DELAY_MS, Prefs.DEFAULT_DELAY_MS);
-        debugMode = Prefs.getBool(this, Prefs.KEY_DEBUG, Prefs.DEFAULT_DEBUG);
+        boolean newDebug = Prefs.getBool(this, Prefs.KEY_DEBUG, Prefs.DEFAULT_DEBUG);
+        if (newDebug != debugMode) {
+            debugMode = newDebug;
+            if (lastDiagnosis != null) {
+                // The failure screen is up: redraw it right away so the toggle
+                // takes effect without waiting for the next failed attempt.
+                renderErrorState();
+            }
+        }
     }
 
     public void onDestroy() {
@@ -173,6 +239,66 @@ public class MainActivity extends Activity {
             client = null;
         }
         super.onDestroy();
+    }
+
+    // -------------------------------------------------- transport controls
+
+    /**
+     * Sends a transport command (next / prev / pause / resume) to the relay's
+     * {@code /control} endpoint. Fire-and-forget: the status poller reflects
+     * the new state (immediately in wait mode, within the nudged cadence in
+     * classic mode), and a silent failure here is acceptable — the next poll
+     * still shows the truth, and the debug log keeps what was sent.
+     */
+    private void sendControl(final String action) {
+        if (relayUrl == null) {
+            return;
+        }
+        final String url = RelayClient.controlUrlFor(relayUrl, action);
+        final String u = relayUser;
+        final String p = relayPass;
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    Http.post(url, u, p);
+                } catch (IOException ignored) {
+                    // See above: the next status poll will reconcile.
+                }
+                if (client != null) {
+                    client.nudge();
+                }
+            }
+        }, "control");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /**
+     * Makes the play/pause button show the opposite of the current state
+     * (Spotify convention): playing → pause icon, paused → play icon.
+     */
+    private void updatePlayIcon() {
+        int res = playing ? R.drawable.ic_pause : R.drawable.ic_play;
+        if (res != lastPlayIcon) {
+            btnPlayPause.setImageResource(res);
+            lastPlayIcon = res;
+        }
+    }
+
+    /**
+     * The transport row is only useful when the relay is reachable and owns
+     * a track; otherwise the buttons would click into the void. The default
+     * pressed-dim of {@code setEnabled} gives the disabled look (API 10 has
+     * no ripples).
+     */
+    private void setControlsEnabled(boolean enabled) {
+        if (enabled == controlsEnabled) {
+            return;
+        }
+        controlsEnabled = enabled;
+        btnPrev.setEnabled(enabled);
+        btnPlayPause.setEnabled(enabled);
+        btnNext.setEnabled(enabled);
     }
 
     // ---------------------------------------------------------------- UI
@@ -209,8 +335,20 @@ public class MainActivity extends Activity {
      * the client works in the background.
      */
     private void showDiagnosis(Diagnosis d) {
-        // Debug off: just the short headline. Debug on: the full check list.
-        // The attempt number (footer) and the retry countdown stay in both.
+        lastDiagnosis = d;
+        renderErrorState();
+    }
+
+    /**
+     * (Re)draws the failure screen according to the current {@link #debugMode}:
+     * the short headline is always shown, the full check list only in debug
+     * mode; the attempt number (footer) and the retry countdown stay in both.
+     */
+    private void renderErrorState() {
+        Diagnosis d = lastDiagnosis;
+        if (d == null) {
+            return;
+        }
         showPlainMessage(headlineFor(d), debugMode ? detailFor(d) : "");
         setTextViewText(footer, getString(R.string.footer_offline_attempt, d.attempt));
 
@@ -338,6 +476,20 @@ public class MainActivity extends Activity {
     /** Runs on the main thread (RelayClient posts there). */
     private void handleStatus(Status s) {
         clearRetryTicker();
+        // Any live answer — even a relay-reported error — replaces the
+        // failure screen: a stale diagnosis must not be redrawn when the
+        // user comes back.
+        lastDiagnosis = null;
+
+        // Transport row: the icon follows the last reported state and the
+        // buttons are only enabled when there is a session and a track to
+        // control.
+        boolean isPlaying = s.ok && s.playing;
+        if (isPlaying != playing) {
+            playing = isPlaying;
+            updatePlayIcon();
+        }
+        setControlsEnabled(s.ok && s.track != null);
 
         if (!s.ok) {
             String detail = s.auth
@@ -352,7 +504,7 @@ public class MainActivity extends Activity {
             lastTrackId = null;
             setTextViewText(title, getString(R.string.app_name));
             setTextViewText(subtitle, "");
-            cover.setImageBitmap(null);
+            hideCover();
             showPlainMessage(getString(R.string.no_track), "");
             setTextViewText(footer, getString(R.string.footer_online));
             return;
@@ -374,18 +526,23 @@ public class MainActivity extends Activity {
         // positionMs - delayMs, so the words match what is heard now.
         int effIdx = s.line;
         String effText = s.lineText;
+        ArrayList<LyricLine> effNext = null;
         if (delayMs > 0 && s.lines != null && s.lines.size() > 0) {
             int li = LyricIndex.indexOfLine(s.lines, s.positionMs, delayMs);
             if (li >= 0) {
                 effIdx = li;
                 effText = s.lines.get(li).text;
+                // The relay's nextLines are anchored at its unshifted index;
+                // derive them from the effective index so the band follows
+                // the (delay-shifted) current line.
+                effNext = LyricIndex.nextBlock(s.lines, li, bandNext.length);
             }
         }
 
         boolean hasBand = effIdx >= 0
                 && (nonEmpty(effText) || (s.lines != null && s.lines.size() > 0));
         if (hasBand) {
-            renderBand(s, effIdx, effText, active);
+            renderBand(s, effIdx, effText, effNext, active);
         } else if (nonEmpty(s.plain)) {
             renderPlain(s.plain, active);
         } else {
@@ -414,21 +571,37 @@ public class MainActivity extends Activity {
         setTextViewText(subtitle, sb.toString());
 
         final String tag = lastTrackId;
-        cover.setImageBitmap(null);
+        // New track: hide the previous cover until (and unless) the new one
+        // arrives — GONE rather than INVISIBLE so a track without art does
+        // not leave a grey square behind.
+        hideCover();
         if (nonEmpty(t.coverUrl)) {
             CoverLoader.load(t.coverUrl, new CoverLoader.Callback() {
                 public void onFinished(Bitmap b, String returnedTag) {
                     boolean same = (tag == null && returnedTag == null)
                             || (tag != null && tag.equals(returnedTag));
-                    if (same) {
+                    if (!same) {
+                        return;
+                    }
+                    if (b != null) {
                         cover.setImageBitmap(b);
+                        cover.setVisibility(View.VISIBLE);
+                    } else {
+                        // The URL was not a usable image: show no cover.
+                        cover.setVisibility(View.GONE);
                     }
                 }
             }, tag);
         }
     }
 
-    private void renderBand(Status s, int effIdx, String effText, boolean active) {
+    private void hideCover() {
+        cover.setImageBitmap(null);
+        cover.setVisibility(View.GONE);
+    }
+
+    private void renderBand(Status s, int effIdx, String effText,
+                            ArrayList<LyricLine> effNext, boolean active) {
         showView(band);
         ArrayList<LyricLine> all = s.lines;
         int n = (all == null) ? 0 : all.size();
@@ -449,7 +622,9 @@ public class MainActivity extends Activity {
 
         for (int i = 0; i < bandNext.length; i++) {
             String xt = "";
-            if (s.nextLines != null && s.nextLines.size() > i) {
+            if (effNext != null && effNext.size() > i) {
+                xt = effNext.get(i).text;
+            } else if (s.nextLines != null && s.nextLines.size() > i) {
                 xt = s.nextLines.get(i).text;
             } else if (n > 0 && idx + 1 + i < n) {
                 xt = all.get(idx + 1 + i).text;

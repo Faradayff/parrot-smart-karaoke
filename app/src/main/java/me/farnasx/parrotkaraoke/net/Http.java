@@ -118,6 +118,48 @@ public final class Http {
     }
 
     /**
+     * POSTs {@code url} (the relay's {@code /control} endpoint) and discards
+     * the body. Same timeouts and Basic Auth as {@link #get}; non-2xx answers
+     * throw the same {@link HttpException}, so a control that the relay rejects
+     * can be spotted later in the debug log.
+     */
+    public static void post(String url, String user, String pass) throws IOException {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            c.setRequestMethod("POST");
+            c.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            c.setReadTimeout(READ_TIMEOUT_MS);
+            c.setRequestProperty("Accept", "application/json");
+            c.setRequestProperty("User-Agent", "parrot-karaoke/1.7 (Android)");
+
+            boolean authSent = false;
+            String b64 = null;
+            if (user != null && user.length() > 0
+                    && pass != null && pass.length() > 0) {
+                b64 = Base64.encodeToString((user + ":" + pass).getBytes("UTF-8"), Base64.NO_WRAP);
+                c.setRequestProperty("Authorization", "Basic " + b64);
+                authSent = true;
+            }
+            logDebug(url, user, pass, authSent, b64);
+
+            int code = c.getResponseCode();
+            if (code < 200 || code >= 300) {
+                InputStream in = (code >= 400 && code <= 599)
+                        ? c.getErrorStream()
+                        : c.getInputStream();
+                byte[] body = readAll(in);
+                String snippet = new String(body, "UTF-8").trim();
+                if (snippet.length() > 120) {
+                    snippet = snippet.substring(0, 120);
+                }
+                throw new HttpException(code, snippet, authSent ? user : null, authSent);
+            }
+        } finally {
+            c.disconnect();
+        }
+    }
+
+    /**
      * Development-only append-only log of exactly what was about to be sent,
      * so a 401 on the car can be checked on the file system
      * ({@code /sdcard/parrot-karaoke-debug.log}). Never breaks the request.

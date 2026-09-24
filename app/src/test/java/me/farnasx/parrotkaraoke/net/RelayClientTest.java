@@ -67,6 +67,40 @@ public class RelayClientTest {
     }
 
     @Test
+    public void controlUrlReplacesStatusWithControl() {
+        assertEquals("http://relay/control?action=next",
+                RelayClient.controlUrlFor("http://relay/status", "next"));
+        assertEquals("http://relay/control?action=pause",
+                RelayClient.controlUrlFor("http://relay/status", "pause"));
+        assertEquals("http://relay/control?action=resume",
+                RelayClient.controlUrlFor("http://relay/status", "resume"));
+        assertEquals("http://relay/control?action=prev",
+                RelayClient.controlUrlFor("http://relay/status", "prev"));
+    }
+
+    @Test
+    public void controlUrlKeepsHostAndBasePath() {
+        // A relay mounted under a base path: only the last segment changes.
+        assertEquals("https://host/lyrics/control?action=next",
+                RelayClient.controlUrlFor("https://host/lyrics/status", "next"));
+        // A settings URL that points at the relay root: control is appended.
+        assertEquals("http://10.0.0.5:8899/control?action=resume",
+                RelayClient.controlUrlFor("http://10.0.0.5:8899/", "resume"));
+    }
+
+    @Test
+    public void controlUrlToleratesSloppyStoredUrls() {
+        assertEquals("http://relay/control?action=prev",
+                RelayClient.controlUrlFor("http://relay/status?x=1", "prev"));
+        assertEquals("http://relay/control?action=prev",
+                RelayClient.controlUrlFor("http://relay/status/", "prev"));
+        assertEquals("http://relay/control?action=prev",
+                RelayClient.controlUrlFor("http://relay/control", "prev"));
+        assertEquals("http://relay/control?action=prev",
+                RelayClient.controlUrlFor("  http://relay/status  ", "prev"));
+    }
+
+    @Test
     public void readTimeoutIsLongerInWaitMode() {
         assertTrue(RelayClient.WAIT_READ_TIMEOUT_MS > RelayClient.WAIT_TIMEOUT_MS);
         assertTrue(RelayClient.WAIT_READ_TIMEOUT_MS > Http.READ_TIMEOUT_MS);

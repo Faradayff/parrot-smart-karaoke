@@ -92,6 +92,14 @@ public final class RelayClient {
     private volatile boolean running;
     private Thread thread;
 
+    /**
+     * Deadline until which the next classic-mode sleep must be shortened:
+     * sent by a control action (next / play-pause) so the fresh state is not
+     * held back by a 3-5 s cadence. One-shot; in wait mode it is irrelevant
+     * because the held request already wakes up on state changes.
+     */
+    private volatile long nudgeUntilMs;
+
     public RelayClient(Callback callback, String url, String user, String pass,
                         int baseIntervalMs, Diagnostics.Labels labels) {
         this.callback = callback;
@@ -121,6 +129,22 @@ public final class RelayClient {
         if (thread != null) {
             thread.interrupt();
         }
+    }
+
+    /**
+     * Ask the poller to pick up the state soon (a control action was just
+     * sent and will change it). In classic polling mode this caps the next
+     * sleep; in wait mode the held request is already waking on any change.
+     */
+    public void nudge() {
+        nudgeUntilMs = System.currentTimeMillis() + 5000;
+    }
+
+    /** Remaining nudge time, consumed once; 0 when none is pending. */
+    private long nudgeLeftMs() {
+        long left = nudgeUntilMs - System.currentTimeMillis();
+        nudgeUntilMs = 0L;
+        return (left > 0) ? left : 0L;
     }
 
     private void loop() {
@@ -171,7 +195,12 @@ public final class RelayClient {
                 // classic adaptive polling.
                 lastSeenVersion = -1L;
                 postStatus(status);
-                sleepInterruptible(delayFor(status, baseIntervalMs));
+                long delay = delayFor(status, baseIntervalMs);
+                long nudgeLeft = nudgeLeftMs();
+                if (nudgeLeft > 0 && nudgeLeft < delay) {
+                    delay = nudgeLeft;
+                }
+                sleepInterruptible(delay);
             } else {
                 // --------------------------------------------------- failures
                 consecutiveFailures++;
@@ -271,6 +300,32 @@ public final class RelayClient {
             return 10000;
         }
         return 15000;
+    }
+
+    /**
+     * Derives the relay control URL from the configured status URL:
+     * {@code http://host/status} → {@code http://host/control?action=next}.
+     * A trailing {@code /status} (or an already-present {@code /control}) is
+     * stripped; everything before it — scheme, host, and base paths like
+     * {@code /lyrics} — is kept.
+     *
+     * @param action one of {@code next}, {@code prev}, {@code pause}, {@code resume}
+     */
+    public static String controlUrlFor(String statusUrl, String action) {
+        String base = (statusUrl == null) ? "" : statusUrl.trim();
+        int q = base.indexOf('?');
+        if (q >= 0) {
+            base = base.substring(0, q);
+        }
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        if (base.endsWith("/status")) {
+            base = base.substring(0, base.length() - "/status".length());
+        } else if (base.endsWith("/control")) {
+            base = base.substring(0, base.length() - "/control".length());
+        }
+        return base + "/control?action=" + action;
     }
 
     /** Appends the long-poll query parameters to the relay status URL. */

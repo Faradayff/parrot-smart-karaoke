@@ -1,8 +1,8 @@
 # Parrot Smart Karaoke
 
-An Android app **for Android 2.3.7 (API 10)** designed for the built-in screen of a **Parrot Asteroid** (car head unit, 800×480 display). It shows in real time the **synchronized song lyrics** (karaoke-style) along with the **title, artist, and album**, plus the album cover.
+An Android app **for Android 2.3.7 (API 10)** designed for the built-in screen of a **Parrot Asteroid** (car head unit, 800×480 display). It shows in real time the **synchronized song lyrics** (karaoke-style) along with the **title, artist, and album**, plus the album cover (shown only when the track has art).
 
-It's purely presentational: **it has no music controls**. All music is played from your regular device (Spotify), and this app only draws what's playing.
+It's mostly presentational — the song itself is played from your regular device (Spotify) — but it carries a small **transport row (previous / play-pause / next)**: those buttons send `POST /control` commands to the relay, and the play/pause button always shows the opposite of the current state (pause icon while playing, play icon while paused).
 
 ## Made to be used alongside `spotify-lyrics-relay`
 
@@ -18,9 +18,10 @@ Division of responsibilities:
 | Spotify OAuth token | yes (holds and refreshes it) | no |
 | Query LRCLIB and resolve the current line | yes (`line`, `lineText`, `lines`, `nextLines`) | no |
 | HTTP | server | client (long-poll, classic polling fallback) |
-| UI | status HTML / APIs | karaoke band on the car screen |
+| UI | status HTML / APIs | karaoke band + transport row on the car screen |
 
-The app **only consumes `GET /status`** from the relay:
+The app consumes two relay endpoints — `GET /status` (state) and
+`POST /control` (playback commands):
 
 ```
 GET /status  →  200 JSON
@@ -36,6 +37,19 @@ GET /status  →  200 JSON
   "plain": "only if no synced lyrics exist"
 }
 ```
+
+and for the transport row:
+
+```
+POST /control?action=next|prev|pause|resume   →   200 { "ok": true, "action": "…" }
+```
+
+The app derives the control URL from the configured status URL
+(`http://host/status` → `http://host/control?action=…`), keeps the same
+Basic Auth, and nudges its poller right after a command so the new state
+(showing on the play/pause icon) arrives without waiting out the whole
+cadence. A rejected command is a silent no-op for the screen: the next
+status poll still reconciles, and the request lands in the debug log.
 
 **Long-poll ("wait") mode** (when the relay implements `version`): the app also
 accepts holding a request open until the state changes, so it stops polling at a
@@ -57,7 +71,7 @@ without a `version` field; the app then keeps its classic adaptive polling
 
 Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not trust Let's Encrypt roots**. The assumed setup is:
 
-- a **vhost on port 80** (HTTP) of the relay, protected with **Basic Auth** at the proxy (e.g. the Synology reverse proxy), mounting only `/status`, so that `/login`, `/callback`, `/control`, and `/logout` stay only on the browser's HTTPS vhost (Let's Encrypt).
+- a **vhost on port 80** (HTTP) of the relay, protected with **Basic Auth** at the proxy (e.g. the Synology reverse proxy), mounting `/status` **and `POST /control`** — the two endpoints the car needs, including for the transport row — so that `/login`, `/callback`, and `/logout` stay only on the browser's HTTPS vhost (Let's Encrypt).
 - the app adds `Authorization: Basic …` to each request (user/pass from the settings screen, never in the binary).
 
 ## Usage
@@ -70,13 +84,16 @@ Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not tru
     ```
     adb install parrot-karaoke.apk
     ```
-3. Open **Parrot Karaoke** → **SETTINGS** button → relay URL, user, and password
-   for the Basic Auth (and optionally the polling interval) → **SAVE**.
+3. Open **Parrot Karaoke** → the **gear button** in the header → relay URL, user,
+   and password for the Basic Auth (and optionally the polling interval) → **SAVE**.
    If the music arrives delayed in the car (typical ~1 s), set **Lyrics delay**
    (0.1 s granularity, 0–30 s) so the words follow what you actually hear —
    it is saved permanently and takes effect as soon as you come back.
 4. Hit play: the app shows the current line in green, the 2 previous ones dimmed,
-   and up to 3 upcoming lines, with cover art and status (ONLINE / PAUSED / OFFLINE / auth error).
+   and up to 3 upcoming lines, with the album cover (top-left, only when the track
+   has art), the status (ONLINE / PAUSED / OFFLINE / auth error), and working
+   **previous / play-pause / next** buttons in the header — they call the relay's
+   `/control` endpoint (the HTTP vhost must forward it, see above).
 
 Network behavior: with a wait-capable relay the app long-polls — one request
 per state change, held open at most `timeoutMs` at a time. With an older relay
@@ -136,13 +153,13 @@ on GitHub Actions and creates the release automatically.
   `minSdk 10` / `targetSdk 10`, AGP 8.5 + Gradle 8.7 + JDK 17.
 - Structure:
   - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM).
-  - `net/` — `Http` (HttpURLConnection + Base64, typed `HttpException` with the status code, per-call read timeout), `RelayClient` (long-poll/wait loop when the relay advertises `version`, classic adaptive polling otherwise; quiet retries before the first diagnosis), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
-  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown; the full check list is shown only when the Settings "Debug mode" toggle is on, otherwise just the short headline — the attempt number stays visible in both).
+  - `net/` — `Http` (HttpURLConnection + Base64, `get` and `post`, typed `HttpException` with the status code, per-call read timeout), `RelayClient` (long-poll/wait loop when the relay advertises `version`, classic adaptive polling otherwise; quiet retries before the first diagnosis; `controlUrlFor` derives the `/control` URL from the configured status URL, and `nudge` shortens the next poll after a control action), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
+  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown; the full check list is shown only when the Settings "Debug mode" toggle is on, otherwise just the short headline — the attempt number stays visible in both), a transport row (previous / play-pause / next) that POSTs to the relay's `/control` endpoint and whose central button flips between a play and a pause icon with `Status.playing`, and an album cover that is only visible while it actually shows an image.
   - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps), Debug mode toggle.
   - `util/Prefs` — keys and default values.
 - Build and tests:
   ```
-  ./gradlew :app:testDebugUnitTest   # parser, diagnostics, relay-client and lyric-index unit tests (42 cases)
+  ./gradlew :app:testDebugUnitTest   # parser, diagnostics, relay-client (incl. control-URL derivation) and lyric-index unit tests (48 cases)
   ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
   ```
   - **Local development builds**: the relay defaults (URL, Basic Auth user/pass)
