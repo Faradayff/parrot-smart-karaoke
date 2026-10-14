@@ -51,8 +51,7 @@ public class MainActivity extends Activity {
     private TextView current;
     private TextView next1;
     private TextView next2;
-    private TextView next3;
-    private TextView[] bandNext = new TextView[3];
+    private TextView[] bandNext = new TextView[2];
     private ScrollView plainScroll;
     private TextView plainText;
     private LinearLayout msgBox;
@@ -150,10 +149,8 @@ public class MainActivity extends Activity {
         current = (TextView) findViewById(R.id.current);
         next1 = (TextView) findViewById(R.id.next1);
         next2 = (TextView) findViewById(R.id.next2);
-        next3 = (TextView) findViewById(R.id.next3);
         bandNext[0] = next1;
         bandNext[1] = next2;
-        bandNext[2] = next3;
         plainScroll = (ScrollView) findViewById(R.id.plainScroll);
         plainText = (TextView) findViewById(R.id.plainText);
         msgBox = (LinearLayout) findViewById(R.id.msgBox);
@@ -638,7 +635,6 @@ public class MainActivity extends Activity {
         prev1.setTextColor(othColor);
         next1.setTextColor(othColor);
         next2.setTextColor(othColor);
-        next3.setTextColor(othColor);
 
         setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
     }

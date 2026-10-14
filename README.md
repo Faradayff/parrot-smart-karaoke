@@ -89,8 +89,8 @@ Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not tru
    If the music arrives delayed in the car (typical ~1 s), set **Lyrics delay**
    (0.1 s granularity, 0–30 s) so the words follow what you actually hear —
    it is saved permanently and takes effect as soon as you come back.
-4. Hit play: the app shows the current line in green, the 2 previous ones dimmed,
-   and up to 3 upcoming lines, with the album cover (top-left, only when the track
+4. Hit play: the app shows the current line in green, the 1 previous one dimmed,
+   and up to 2 upcoming lines, with the album cover (top-left, only when the track
    has art), the status (ONLINE / PAUSED / OFFLINE / auth error), and working
    **previous / play-pause / next** buttons in the header — they call the relay's
    `/control` endpoint (the HTTP vhost must forward it, see above).

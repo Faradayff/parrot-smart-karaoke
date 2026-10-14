@@ -112,8 +112,8 @@
 
         <!-- Karaoke band: 1 previous line, the current (large) line with
              breathing room so it never crowds the small neighbours, and up
-             to 3 upcoming lines. The current line may wrap to 3 lines;
-             margins were tightened so it fits without crowding. -->
+             to 2 upcoming lines. The current line may wrap to 3 lines;
+             dropping the third upcoming line left room for that. -->
         <LinearLayout
             android:id="@+id/band"
             android:layout_width="match_parent"
@@ -169,18 +169,6 @@
                 android:singleLine="true"
                 android:textColor="@color/other"
                 android:textSize="15sp" />
-
-            <TextView
-                android:id="@+id/next3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:layout_marginBottom="1dp"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:singleLine="true"
-                android:textColor="@color/other"
-                android:textSize="13sp" />
         </LinearLayout>
 
         <!-- Plain (unsynced) lyrics -->
