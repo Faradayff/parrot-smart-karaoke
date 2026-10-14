@@ -57,13 +57,23 @@ public class RelayClientTest {
     @Test
     public void waitUrlAppendsParams() {
         assertEquals("http://relay/status?wait=1&timeoutMs=" + RelayClient.WAIT_TIMEOUT_MS
-                + "&sinceVersion=42", RelayClient.waitUrl("http://relay/status", 42L));
+                + "&sinceVersion=42&delayMs=1200",
+                RelayClient.waitUrl("http://relay/status", 42L, 1200));
+    }
+
+    @Test
+    public void waitUrlAlwaysSendsDelayEvenZero() {
+        // delayMs=0 is a valid "no delay" and must still be sent, so the
+        // relay's "new client" path (response echo + trimmed lines) is stable.
+        String u = RelayClient.waitUrl("http://relay/status", -1L, 0);
+        assertTrue("must end with &delayMs=0, got: " + u, u.endsWith("&delayMs=0"));
     }
 
     @Test
     public void waitUrlKeepsAnExistingQuery() {
         assertEquals("http://relay/status?x=1&wait=1&timeoutMs=" + RelayClient.WAIT_TIMEOUT_MS
-                + "&sinceVersion=-1", RelayClient.waitUrl("http://relay/status?x=1", -1L));
+                + "&sinceVersion=-1&delayMs=800",
+                RelayClient.waitUrl("http://relay/status?x=1", -1L, 800));
     }
 
     @Test

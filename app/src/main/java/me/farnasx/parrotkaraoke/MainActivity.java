@@ -218,6 +218,13 @@ public class MainActivity extends Activity {
         super.onResume();
         // Reload so a value changed in the settings screen applies immediately.
         delayMs = Prefs.getInt(this, Prefs.KEY_DELAY_MS, Prefs.DEFAULT_DELAY_MS);
+        // Forward it to the poller so the relay applies the compensation and the
+        // app stops re-deriving the line locally. Applies on the next request;
+        // an older relay simply ignores the parameter and the local fallback
+        // (which uses this same delayMs) remains in effect.
+        if (client != null) {
+            client.setDelayMs(delayMs);
+        }
         boolean newDebug = Prefs.getBool(this, Prefs.KEY_DEBUG, Prefs.DEFAULT_DEBUG);
         if (newDebug != debugMode) {
             debugMode = newDebug;
@@ -518,28 +525,54 @@ public class MainActivity extends Activity {
 
         boolean active = s.playing;
 
-        // If the user set an audio-delay compensation (e.g. the car audio
-        // chain plays ~1 s late), re-derive the active line at
-        // positionMs - delayMs, so the words match what is heard now.
-        int effIdx = s.line;
-        String effText = s.lineText;
-        ArrayList<LyricLine> effNext = null;
-        if (delayMs > 0 && s.lines != null && s.lines.size() > 0) {
-            int li = LyricIndex.indexOfLine(s.lines, s.positionMs, delayMs);
-            if (li >= 0) {
-                effIdx = li;
-                effText = s.lines.get(li).text;
-                // The relay's nextLines are anchored at its unshifted index;
-                // derive them from the effective index so the band follows
-                // the (delay-shifted) current line.
-                effNext = LyricIndex.nextBlock(s.lines, li, bandNext.length);
+        // Resolve the karaoke band:
+        //   * Relay applied the delay (s.delayMs >= 0): the served
+        //     line/lineText/nextLines are already anchored to what is heard now
+        //     and the line above comes from prevLine. Render them directly — no
+        //     local re-derivation, and the full "lines" array was never parsed
+        //     (the relay trims it for new clients).
+        //   * Older relay (s.delayMs < 0): keep the historical behavior — re-derive
+        //     the active line at positionMs - delayMs from the full "lines" list,
+        //     so the words still match what is heard.
+        boolean relayApplied = s.delayMs >= 0;
+        int effIdx;
+        String effText;
+        String prevText;
+        ArrayList<LyricLine> effNext;
+
+        if (relayApplied) {
+            effIdx = s.line;
+            effText = s.lineText;
+            prevText = s.prevLine;
+            effNext = s.nextLines;
+        } else {
+            effIdx = s.line;
+            effText = s.lineText;
+            prevText = null; // renderBand derives it from s.lines
+            effNext = null;
+            if (delayMs > 0 && s.lines != null && s.lines.size() > 0) {
+                int li = LyricIndex.indexOfLine(s.lines, s.positionMs, delayMs);
+                if (li >= 0) {
+                    effIdx = li;
+                    effText = s.lines.get(li).text;
+                    // The relay's nextLines are anchored at its unshifted index;
+                    // derive them from the effective index so the band follows
+                    // the (delay-shifted) current line.
+                    effNext = LyricIndex.nextBlock(s.lines, li, bandNext.length);
+                }
             }
         }
 
-        boolean hasBand = effIdx >= 0
-                && (nonEmpty(effText) || (s.lines != null && s.lines.size() > 0));
+        boolean hasBand;
+        if (relayApplied) {
+            // The relay is authoritative about sync mode + the served line.
+            hasBand = s.lyricsSynced && s.line >= 0;
+        } else {
+            hasBand = effIdx >= 0
+                    && (nonEmpty(effText) || (s.lines != null && s.lines.size() > 0));
+        }
         if (hasBand) {
-            renderBand(s, effIdx, effText, effNext, active);
+            renderBand(s, effIdx, effText, prevText, effNext, active);
         } else if (nonEmpty(s.plain)) {
             renderPlain(s.plain, active);
         } else {
@@ -597,7 +630,7 @@ public class MainActivity extends Activity {
         cover.setVisibility(View.GONE);
     }
 
-    private void renderBand(Status s, int effIdx, String effText,
+    private void renderBand(Status s, int effIdx, String effText, String prevText,
                             ArrayList<LyricLine> effNext, boolean active) {
         showView(band);
         ArrayList<LyricLine> all = s.lines;
@@ -611,7 +644,13 @@ public class MainActivity extends Activity {
         }
 
         // One previous line above the big current one (see activity_main).
-        setBandSlot(prev1, (n > 0 && idx - 1 >= 0) ? all.get(idx - 1).text : "");
+        // Prefer the relay-provided prevLine (relay-applied-delay path, where
+        // the full "lines" array is absent); otherwise derive it from the list.
+        if (nonEmpty(prevText)) {
+            setBandSlot(prev1, prevText);
+        } else {
+            setBandSlot(prev1, (n > 0 && idx - 1 >= 0) ? all.get(idx - 1).text : "");
+        }
 
         String cur = nonEmpty(effText) ? effText
                 : (n > 0 ? all.get(idx).text : "");

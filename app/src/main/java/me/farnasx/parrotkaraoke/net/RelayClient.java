@@ -89,6 +89,15 @@ public final class RelayClient {
      */
     private volatile long lastSeenVersion = -1L;
 
+    /**
+     * Audio-delay compensation (ms) forwarded to the relay on every request.
+     * A relay that understands it echoes it back (see {@code Status.delayMs})
+     * and applies it; an older relay ignores the parameter and the app falls
+     * back to re-deriving the line locally with this same value. Always sent,
+     * even 0, so the relay's "new client" path stays consistent.
+     */
+    private volatile int delayMs = 0;
+
     private volatile boolean running;
     private Thread thread;
 
@@ -140,6 +149,22 @@ public final class RelayClient {
         nudgeUntilMs = System.currentTimeMillis() + 5000;
     }
 
+    /**
+     * Sets the audio-delay compensation (ms) the app wants applied to the
+     * active lyric line. Re-read on the next request, so a change in the
+     * settings screen applies without restarting the client. A relay that
+     * supports it echoes the value back and resolves the line at
+     * {@code positionMs − delayMs}; an older relay ignores the parameter.
+     */
+    public void setDelayMs(int delayMs) {
+        this.delayMs = Math.max(0, delayMs);
+    }
+
+    /** The currently forwarded delay (ms); useful for tests and diagnostics. */
+    int delayMs() {
+        return delayMs;
+    }
+
     /** Remaining nudge time, consumed once; 0 when none is pending. */
     private long nudgeLeftMs() {
         long left = nudgeUntilMs - System.currentTimeMillis();
@@ -155,7 +180,7 @@ public final class RelayClient {
             Exception failure = null;
             try {
                 long since = lastSeenVersion;
-                String requestUrl = waitUrl(url, since);
+                String requestUrl = waitUrl(url, since, delayMs());
                 // Wait mode may legitimately take the relay's whole hold period
                 // before a byte arrives; classic mode only needs the short one.
                 int readTimeoutMs = (since >= 0) ? WAIT_READ_TIMEOUT_MS : Http.READ_TIMEOUT_MS;
@@ -328,12 +353,13 @@ public final class RelayClient {
         return base + "/control?action=" + action;
     }
 
-    /** Appends the long-poll query parameters to the relay status URL. */
-    static String waitUrl(String baseUrl, long sinceVersion) {
+    /** Appends the long-poll query parameters (and the delay) to the relay status URL. */
+    static String waitUrl(String baseUrl, long sinceVersion, int delayMs) {
         String u = (baseUrl == null) ? "" : baseUrl;
         String sep = u.indexOf('?') >= 0 ? "&" : "?";
         return u + sep + "wait=1&timeoutMs=" + WAIT_TIMEOUT_MS
-                + "&sinceVersion=" + sinceVersion;
+                + "&sinceVersion=" + sinceVersion
+                + "&delayMs=" + Math.max(0, delayMs);
     }
 
     private void sleepInterruptible(long ms) {

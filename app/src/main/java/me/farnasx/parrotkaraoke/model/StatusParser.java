@@ -44,7 +44,16 @@ public final class StatusParser {
             }
         }
         s.lineText = o.optString("lineText", "");
-        s.lines = parseLines(o.optJSONArray("lines"));
+        // Audio-delay compensation applied by the relay. Its presence (>= 0)
+        // means the relay resolved the active line at positionMs - delayMs and
+        // (for new clients) omitted the full "lines" array: render the served
+        // fields directly. -1 = no field (old relay) -> parse "lines" so the
+        // local re-derivation fallback still works.
+        s.delayMs = o.optLong("delayMs", -1L);
+        s.prevLine = o.optString("prevLine", "");
+        if (s.delayMs < 0) {
+            s.lines = parseLines(o.optJSONArray("lines"));
+        }
         s.nextLines = parseLines(o.optJSONArray("nextLines"));
         s.plain = o.optString("plain", "");
 

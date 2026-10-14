@@ -48,7 +48,7 @@
     <string name="settings_pass">Contraseña (Basic Auth)</string>
     <string name="settings_poll">Intervalo de consulta (ms)</string>
     <string name="settings_delay">Retardo de la letra (s)</string>
-    <string name="settings_delay_hint">Compensa el retardo del audio (p. ej., cuando la música llega ~1 s tarde en el coche). Toca el valor para restablecerlo a 0.</string>
+    <string name="settings_delay_hint">Compensa el retardo del audio (p. ej., cuando la música llega ~1 s tarde en el coche). El relay lo aplica a la letra sincronizada si lo admite; si no, lo aplica este dispositivo. Toca el valor para restablecerlo a 0.</string>
     <string name="settings_debug">Modo debug: muestra la lista completa de comprobaciones en el error (internet, DNS, puerto, respuesta HTTP, tiempo)</string>
     <string name="settings_save">GUARDAR</string>
     <string name="settings_saved">Guardado</string>

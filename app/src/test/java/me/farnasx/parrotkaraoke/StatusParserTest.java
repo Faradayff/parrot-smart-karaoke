@@ -154,4 +154,48 @@ public class StatusParserTest {
         assertEquals(1, s.lines.size());
         assertEquals("hello", s.lines.get(0).text);
     }
+
+    @Test
+    public void relayAppliedDelayParsesFieldsAndSkipsLines() {
+        // New relay: delayMs present (>= 0), prevLine present, "lines" trimmed
+        // (not sent). The parser must keep the served fields and not parse
+        // the (absent) full lines array.
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"auth\":true,\"playing\":true,\"positionMs\":42000,"
+                + "\"version\":7,\"delayMs\":1200,\"lyricsSynced\":true,\"line\":2,"
+                + "\"lineText\":\"Caught in a landslide\","
+                + "\"prevLine\":\"Is this just fantasy?\","
+                + "\"nextLines\":[{\"t\":15000,\"text\":\"Open your eyes\"}]}");
+        assertEquals(1200L, s.delayMs);
+        assertEquals("Is this just fantasy?", s.prevLine);
+        assertEquals(2, s.line);
+        assertEquals("Caught in a landslide", s.lineText);
+        assertEquals(1, s.nextLines.size());
+        assertTrue("relay-applied delay: full lines array must not be parsed",
+                s.lines.isEmpty());
+    }
+
+    @Test
+    public void zeroDelayIsAPresentDelay() {
+        // delayMs=0 is a legitimate "no delay" from a new relay: present, and
+        // the app must still treat it as relay-applied (not fall back).
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"playing\":true,\"delayMs\":0,"
+                + "\"line\":0,\"lineText\":\"a\",\"prevLine\":\"\"}");
+        assertEquals(0L, s.delayMs);
+        assertEquals("", s.prevLine);
+        assertTrue(s.lines.isEmpty());
+    }
+
+    @Test
+    public void oldRelayWithoutDelayMsKeepsLinesParsed() {
+        // Older relay: no delayMs -> -1 (fallback), so the full "lines" array
+        // is parsed and the local re-derivation keeps working.
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"playing\":true,\"line\":0,\"lineText\":\"a\","
+                + "\"lines\":[{\"t\":1000,\"text\":\"a\"},{\"t\":2000,\"text\":\"b\"}]}");
+        assertEquals(-1L, s.delayMs);
+        assertEquals(2, s.lines.size());
+        assertEquals("", s.prevLine);
+    }
 }

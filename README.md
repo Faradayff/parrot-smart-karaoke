@@ -16,7 +16,8 @@ Division of responsibilities:
 | | `spotify-lyrics-relay` | **this project** |
 |---|---|---|
 | Spotify OAuth token | yes (holds and refreshes it) | no |
-| Query LRCLIB and resolve the current line | yes (`line`, `lineText`, `lines`, `nextLines`) | no |
+| Query LRCLIB and resolve the current line | yes (`line`, `lineText`, `prevLine`, `nextLines`), **applying the requested `delayMs`** (so the line is what is heard now) | no |
+| Audio-delay compensation | yes — resolves `line`/`lineText`/`prevLine`/`nextLines` at `positionMs − delayMs` and echoes `delayMs` | sends the user's `delayMs` on every request; renders the served line directly when the relay echoes `delayMs`, otherwise re-derives locally from `lines` |
 | HTTP | server | client (long-poll, classic polling fallback) |
 | UI | status HTML / APIs | karaoke band + transport row on the car screen |
 
@@ -29,10 +30,12 @@ GET /status  →  200 JSON
   "ok": true, "auth": true, "playing": true, "positionMs": 42000,
   "track": { "id", "name", "artist", "album", "uri", "durMs", "cover": [...] },
   "lyricsSynced": true, "lyricsLines": 54,
-  "line": 16,                // 0-based index of the active line (computed by the relay)
+  "line": 16,                // 0-based index of the active line (computed by the relay at positionMs − delayMs)
   "lineText": "…",           // text of that line, ready to render
-  "lines":  [ { "t": ms, "text": "…" }, … ],
+  "prevLine": "…",           // text of the line above the active one ("" at the first line)
+  "lines":  [ { "t": ms, "text": "…" }, … ],   // full list; OMITTED when the request sent delayMs (new client)
   "nextLines": [ …up to 3… ],
+  "delayMs": 1200,           // audio-delay applied by the relay (echoed); presence = feature detection
   "version": 42,             // state version (incremented when the visible state changes)
   "plain": "only if no synced lyrics exist"
 }
@@ -87,8 +90,11 @@ Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not tru
 3. Open **Parrot Karaoke** → the **gear button** in the header → relay URL, user,
    and password for the Basic Auth (and optionally the polling interval) → **SAVE**.
    If the music arrives delayed in the car (typical ~1 s), set **Lyrics delay**
-   (0.1 s granularity, 0–30 s) so the words follow what you actually hear —
-   it is saved permanently and takes effect as soon as you come back.
+   (0.1 s granularity, 0–30 s) so the words follow what you actually hear. The
+   app forwards the value to the relay, which applies it to the synced line and
+   then trims the full `lines` list (keeping the screen light); an older relay
+   ignores it and the app applies it locally. It is saved permanently and takes
+   effect as soon as you come back.
 4. Hit play: the app shows the current line in green, the 1 previous one dimmed,
    and up to 2 upcoming lines, with the album cover (top-left, only when the track
    has art), the status (ONLINE / PAUSED / OFFLINE / auth error), and working
