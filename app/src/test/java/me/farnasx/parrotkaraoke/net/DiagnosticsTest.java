@@ -60,6 +60,27 @@ public class DiagnosticsTest {
     }
 
     @Test
+    public void http400ShowsTheServerBodySnippet() {
+        Http.HttpException he = new Http.HttpException(
+                400, "Invalid wait= parameter", null, false);
+        Diagnosis d = Diagnostics.failedAttempt("http://lyrics.example/status", 1, he, 5000);
+        assertEquals(Diagnosis.HL_HTTP_OTHER, d.headline);
+        assertEquals("HTTP 400 — Invalid wait= parameter",
+                byKind(d, Diagnosis.Check.KIND_HTTP).detail);
+        // We got a response, so the lower layers are still implied-pass.
+        assertEquals(Diagnosis.Check.STATE_OK, byKind(d, Diagnosis.Check.KIND_INTERNET).state);
+        assertEquals(Diagnosis.Check.STATE_OK, byKind(d, Diagnosis.Check.KIND_DNS).state);
+        assertEquals(Diagnosis.Check.STATE_OK, byKind(d, Diagnosis.Check.KIND_RELAY_PORT).state);
+    }
+
+    @Test
+    public void http400WithoutAServerBodyKeepsTheCodeOnlyDetail() {
+        Http.HttpException he = new Http.HttpException(400, "", null, false);
+        Diagnosis d = Diagnostics.failedAttempt("http://lyrics.example/status", 1, he, 5000);
+        assertEquals("HTTP 400", byKind(d, Diagnosis.Check.KIND_HTTP).detail);
+    }
+
+    @Test
     public void http403IsForbidden() {
         assertEquals(Diagnosis.HL_FORBIDDEN, diagnose(null, null, null, null, null, 403).headline);
     }

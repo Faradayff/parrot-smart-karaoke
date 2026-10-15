@@ -161,6 +161,21 @@ public final class Diagnostics {
                     break;
                 }
             }
+        } else if (httpError && httpCode >= 400) {
+            // Any other HTTP error: surface the short body the server actually
+            // sent (first 120 chars, already captured in HttpException), so
+            // the diagnosis shows not just "HTTP 400" but why — a proxy
+            // rejecting the request, a WAF, a misrouted endpoint…
+            final Http.HttpException he = (Http.HttpException) e;
+            if (he.snippet != null && he.snippet.length() > 0) {
+                for (int i = 0; i < d.checks.size(); i++) {
+                    if (d.checks.get(i).kind == Diagnosis.Check.KIND_HTTP) {
+                        d.checks.set(i, Diagnosis.Check.fail(Diagnosis.Check.KIND_HTTP,
+                                "HTTP " + httpCode + " — " + he.snippet));
+                        break;
+                    }
+                }
+            }
         }
 
         d.nextRetryMs = nextRetryMs;
