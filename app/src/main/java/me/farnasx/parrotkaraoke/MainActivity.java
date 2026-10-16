@@ -134,6 +134,11 @@ public class MainActivity extends Activity {
     private long retryDueAt;
     private static final long TICK_MS = 500L;
 
+    // TEMPORARY in-car diagnostic (v1.9.11-dbg) — remove before release.
+    private DebugBoundsView debugBounds;
+    private int debugTextW = -1;
+    private int debugChosenSp = -1;
+
     private static final SimpleDateFormat HMS =
             new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
@@ -161,6 +166,18 @@ public class MainActivity extends Activity {
         msgDetail = (TextView) findViewById(R.id.msgDetail);
         retryLine = (TextView) findViewById(R.id.retryLine);
         footer = (TextView) findViewById(R.id.footer);
+
+        // TEMPORARY in-car diagnostic (v1.9.11-dbg): red box outline around
+        // @+id/current + live metrics readout. Refresh on every layout pass.
+        debugBounds = (DebugBoundsView) findViewById(R.id.debugBounds);
+        if (debugBounds != null) {
+            band.getViewTreeObserver().addOnGlobalLayoutListener(
+                    new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                public void onGlobalLayout() {
+                    updateDebugInfo();
+                }
+            });
+        }
 
         View btnSettings = findViewById(R.id.btnSettings);
         btnSettings.setOnClickListener(new View.OnClickListener() {
@@ -632,6 +649,7 @@ public class MainActivity extends Activity {
                 return;
             }
             int textW = current.getWidth() - current.getPaddingLeft() - current.getPaddingRight();
+            debugTextW = textW; // diagnostic (v1.9.11-dbg)
             if (textW <= 0) {
                 // Aún sin layout (primer render): reintentar tras el layout.
                 band.post(new Runnable() { public void run() { fitCurrentLine(); } });
@@ -666,9 +684,45 @@ public class MainActivity extends Activity {
                     break;
                 }
             }
+            debugChosenSp = chosenSp; // diagnostic (v1.9.11-dbg)
             current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, chosenSp);
         } catch (Throwable ignored) {
             // Nunca tumbar el band por un fallo de medición.
+        }
+    }
+
+    // TEMPORARY in-car diagnostic (v1.9.11-dbg).
+    private void updateDebugInfo() {
+        if (debugBounds == null || current == null) {
+            return;
+        }
+        try {
+            int winW = 0;
+            try {
+                winW = getWindow().findViewById(android.R.id.content).getWidth();
+            } catch (Throwable ignored) {
+            }
+            int x = band.getLeft() + current.getLeft();
+            int y = band.getTop() + current.getTop();
+            int w = current.getWidth();
+            int h = current.getHeight();
+            int lines = -1;
+            int maxLw = -1;
+            android.text.Layout layout = current.getLayout();
+            if (layout != null) {
+                lines = layout.getLineCount();
+                maxLw = 0;
+                for (int i = 0; i < lines; i++) {
+                    int lw = (int) layout.getLineWidth(i);
+                    if (lw > maxLw) {
+                        maxLw = lw;
+                    }
+                }
+            }
+            String info = "win=" + winW + " box=" + w + " sp=" + debugChosenSp
+                    + " textW=" + debugTextW + " lines=" + lines + " maxL=" + maxLw;
+            debugBounds.update(new android.graphics.RectF(x, y, x + w, y + h), info);
+        } catch (Throwable ignored) {
         }
     }
 

@@ -106,6 +106,7 @@
 
     <!-- Body: three exclusive states -->
     <FrameLayout
+        android:id="@+id/body"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
@@ -252,6 +253,14 @@
                 android:textSize="14sp"
                 android:visibility="gone" />
         </LinearLayout>
+
+        <!-- TEMPORARY in-car diagnostic (v1.9.11-dbg): red outline around the
+             @+id/current box + yellow live text metrics. REMOVE before any
+             real release once the car layout behavior is understood. -->
+        <me.farnasx.parrotkaraoke.DebugBoundsView
+            android:id="@+id/debugBounds"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
     </FrameLayout>
 
     <TextView
