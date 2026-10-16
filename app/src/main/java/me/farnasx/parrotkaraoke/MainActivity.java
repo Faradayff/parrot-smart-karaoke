@@ -644,7 +644,13 @@ public class MainActivity extends Activity {
                         android.util.TypedValue.COMPLEX_UNIT_SP, sp, getResources().getDisplayMetrics()));
                 android.text.StaticLayout probe = new android.text.StaticLayout(t, p, textW,
                         android.text.Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-                if (probe.getLineCount() <= 2) { chosenSp = sp; break; }
+                // Both the line count and the widest line must fit the box: a
+                // line wider than textW (e.g. an unbreakable word left by any
+                // stray glue character) would be clipped at the box edges.
+                if (probe.getLineCount() <= 2 && probe.getWidth() <= textW) {
+                    chosenSp = sp;
+                    break;
+                }
             }
             current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, chosenSp);
         } catch (Throwable ignored) {

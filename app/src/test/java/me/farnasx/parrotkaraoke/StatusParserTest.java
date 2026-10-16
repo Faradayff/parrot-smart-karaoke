@@ -175,6 +175,31 @@ public class StatusParserTest {
     }
 
     @Test
+    public void nonBreakingUnicodeSpacesBecomeWrappable() {
+        // Lyrics often carry no-break/invisible Unicode (nbsp, word joiner,
+        // zero-width space, BOM); Android will not break lines at them, so
+        // they must come out as ordinary spaces (or dropped, in the BOM case).
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"playing\":true,\"line\":1,"
+                + "\"lineText\":\"A\u00A0Dios\u2060le\u200Bpedí\","
+                + "\"prevLine\":\"\u00A0\","
+                + "\"nextLines\":[{\"t\":1,\"text\":\"\uFEFFy\u2007no me\"},"
+                + "{\"t\":2,\"text\":\"\u00A0\u00A0\"}]}");
+        assertEquals("A Dios le pedí", s.lineText);
+        assertEquals("", s.prevLine);
+        assertEquals(1, s.nextLines.size());
+        assertEquals("y no me", s.nextLines.get(0).text);
+    }
+
+    @Test
+    public void plainLyricsKeepTheirNewlines() {
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"playing\":false,"
+                + "\"plain\":\"line one\u00A0x\\nline two\"}");
+        assertEquals("line one x\nline two", s.plain);
+    }
+
+    @Test
     public void oldRelayWithoutDelayMsKeepsDefault() {
         // A relay predating the delay feature does not send delayMs -> -1. The
         // served line/lineText are still parsed; a stray "lines" array, if any,

@@ -43,13 +43,13 @@ public final class StatusParser {
                 // null "line" or non-numeric value: keep -1.
             }
         }
-        s.lineText = o.optString("lineText", "");
+        s.lineText = displaySpace(o.optString("lineText", "")).trim();
         // Audio-delay compensation echoed back by the relay (informational;
         // -1 = a relay predating the delay feature).
         s.delayMs = o.optLong("delayMs", -1L);
-        s.prevLine = o.optString("prevLine", "");
+        s.prevLine = displaySpace(o.optString("prevLine", "")).trim();
         s.nextLines = parseLines(o.optJSONArray("nextLines"));
-        s.plain = o.optString("plain", "");
+        s.plain = displaySpace(o.optString("plain", ""));
 
         // Long-poll support: "version": null or non-numeric keeps the -1 default.
         s.version = o.optLong("version", -1L);
@@ -73,6 +73,38 @@ public final class StatusParser {
         return s;
     }
 
+    /**
+     * Maps the invisible "non-breaking" whitespace that some lyrics sources
+     * ship inside lines (U+00A0 no-break space, word joiner, zero-width
+     * space, figure/narrow no-break spaces, BOM, non-breaking hyphen, ...)
+     * into ordinary wrappable characters. Android's StaticLayout will NOT
+     * break a line at those characters, so an affected line renders as one
+     * giant unbreakable line that gets clipped at both ends of its box.
+     * Regular spaces, tabs, newlines and everything else are untouched.
+     */
+    static String displaySpace(String s) {
+        if (s == null || s.length() == 0) {
+            return s;
+        }
+        StringBuilder out = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\uFEFF') {
+                continue; // BOM / zero-width no-break space: drop it.
+            }
+            if (c == '\u00A0' || c == '\u2007' || c == '\u202F'
+                    || c == '\u2060' || c == '\u200B' || c == '\uFFE0'
+                    || c == '\uFFF0') {
+                out.append(' ');
+            } else if (c == '\u2011') {
+                out.append('-');
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
     private static ArrayList<LyricLine> parseLines(JSONArray arr) {
         ArrayList<LyricLine> out = new ArrayList<LyricLine>();
         if (arr == null) {
@@ -83,7 +115,7 @@ public final class StatusParser {
             if (l == null) {
                 continue;
             }
-            String text = l.optString("text", "").trim();
+            String text = displaySpace(l.optString("text", "")).trim();
             if (text.length() == 0) {
                 continue;
             }
