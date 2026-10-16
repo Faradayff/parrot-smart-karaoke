@@ -41,10 +41,16 @@ public class MainActivity extends Activity {
     private static final int COLOR_PLAIN_ACTIVE = 0xFFC8CCD0;
     private static final int COLOR_PLAIN_PAUSED = 0xFF6B7280;
 
-    // Base size of the current line (matches activity_main.xml) and the floor
-    // used by fitCurrentLine when the phrase wraps past what fits.
+    // Base size of the current line (matches activity_main.xml), the floor of
+    // the probe loop (fitCurrentLine) and the absolute floor of the
+    // post-layout correction (verifyCurrentFits). The floor dropped from 26 to
+    // 18 in v1.9.12: on this head unit the rendered text can end up wider than
+    // the box @+id/current reports (v1.9.11 photos: maxL=721 against box=652,
+    // first and last character clipped mid-glyph), so the text must be
+    // allowed to shrink well below 26sp until the whole line is inside.
     private static final int CURRENT_SP_BASE = 34;
-    private static final int CURRENT_SP_MIN = 26;
+    private static final int CURRENT_SP_MIN = 18;
+    private static final int CURRENT_SP_FLOOR = 12;
 
     private TextView title;
     private TextView subtitle;
@@ -138,6 +144,11 @@ public class MainActivity extends Activity {
     private DebugBoundsView debugBounds;
     private int debugTextW = -1;
     private int debugChosenSp = -1;
+
+    /** Current size (sp) of @+id/current. fitCurrentLine and
+     *  verifyCurrentFits keep it in sync so the shrink steps can never run
+     *  below the floor. */
+    private int currentSp = CURRENT_SP_BASE;
 
     private static final SimpleDateFormat HMS =
             new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
@@ -645,6 +656,7 @@ public class MainActivity extends Activity {
         try {
             CharSequence t = current.getText();
             if (t == null || t.length() == 0) {
+                currentSp = CURRENT_SP_BASE;
                 current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, CURRENT_SP_BASE);
                 return;
             }
@@ -685,9 +697,58 @@ public class MainActivity extends Activity {
                 }
             }
             debugChosenSp = chosenSp; // diagnostic (v1.9.11-dbg)
+            currentSp = chosenSp;
             current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, chosenSp);
         } catch (Throwable ignored) {
             // Nunca tumbar el band por un fallo de medición.
+        }
+        // v1.9.12: on this head unit the text the framework actually renders
+        // can be wider than the box @+id/current reports even when the probe
+        // above says it fits (v1.9.11 photos: probe OK at 34sp, on-screen line
+        // 721px wide against a 652px box => 'A' and 'la' cut mid-glyph). The
+        // probe cannot know the real wrap width, so after the next layout
+        // pass re-measure the REAL layout and keep shrinking until every line
+        // is inside the box or the absolute floor is reached.
+        try {
+            CharSequence t2 = current.getText();
+            if (t2 != null && t2.length() > 0) {
+                band.post(new Runnable() { public void run() { verifyCurrentFits(0); } });
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    // v1.9.12: post-layout correction of the current line. Reads the layout
+    // the view really has (not a probe), and if its widest line sticks out of
+    // the box (first/last character clipped) drops the size by 2sp and waits
+    // for the new layout. Terminates at CURRENT_SP_FLOOR; the +0.5f is float
+    // slop so a line exactly as wide as the box is accepted.
+    private void verifyCurrentFits(int attempt) {
+        try {
+            int viewW = current.getWidth() - current.getPaddingLeft()
+                    - current.getPaddingRight();
+            android.text.Layout layout = current.getLayout();
+            if (viewW <= 0 || layout == null) {
+                // Layout not ready yet: retry on the next message.
+                if (attempt < 6) {
+                    band.post(new Runnable() { public void run() { verifyCurrentFits(attempt + 1); } });
+                }
+                return;
+            }
+            float maxL = 0f;
+            for (int i = 0; i < layout.getLineCount(); i++) {
+                float lw = layout.getLineWidth(i); // returns float (v1.9.10)
+                if (lw > maxL) {
+                    maxL = lw;
+                }
+            }
+            if (maxL > viewW + 0.5f && currentSp > CURRENT_SP_FLOOR) {
+                currentSp = Math.max(CURRENT_SP_FLOOR, currentSp - 2);
+                current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, currentSp);
+                debugChosenSp = currentSp; // yellow readout shows the final size
+                band.post(new Runnable() { public void run() { verifyCurrentFits(0); } });
+            }
+        } catch (Throwable ignored) {
         }
     }
 

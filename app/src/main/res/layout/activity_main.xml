@@ -117,7 +117,8 @@
              the whole space between and stays centered in it, with the v1.8
              spacing around the neighbours. The current line may wrap to 3
              (or 4) lines; from 3 lines on it is auto-shrunk in code (see
-             fitCurrentLine, floor 26sp) until it reads as 2 lines.
+             fitCurrentLine, floor 18sp + verifyCurrentFits post-layout
+          correction) until it reads as 2 lines.
              @+id/current intentionally sets NO ellipsize — on Android 2.3.7
              ellipsize truncates the text early (to 2 lines) regardless of
              maxLines, so we let it wrap fully instead. -->
