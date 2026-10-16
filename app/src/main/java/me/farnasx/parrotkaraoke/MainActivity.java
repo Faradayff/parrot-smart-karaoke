@@ -134,82 +134,12 @@ public class MainActivity extends Activity {
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // PROBE BUILD: the launcher entry opens the diagnostic screen directly,
+        // because the head unit's launcher shows a single entry per package.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        setContentView(R.layout.activity_main);
-
-        title = (TextView) findViewById(R.id.title);
-        subtitle = (TextView) findViewById(R.id.subtitle);
-        cover = (ImageView) findViewById(R.id.cover);
-        band = (LinearLayout) findViewById(R.id.band);
-        prev1 = (TextView) findViewById(R.id.prev1);
-        current = (TextView) findViewById(R.id.current);
-        next1 = (TextView) findViewById(R.id.next1);
-        next2 = (TextView) findViewById(R.id.next2);
-        bandNext[0] = next1;
-        bandNext[1] = next2;
-        plainScroll = (ScrollView) findViewById(R.id.plainScroll);
-        plainText = (TextView) findViewById(R.id.plainText);
-        msgBox = (LinearLayout) findViewById(R.id.msgBox);
-        msgMain = (TextView) findViewById(R.id.msgMain);
-        msgDetail = (TextView) findViewById(R.id.msgDetail);
-        retryLine = (TextView) findViewById(R.id.retryLine);
-        footer = (TextView) findViewById(R.id.footer);
-
-        View btnSettings = findViewById(R.id.btnSettings);
-        btnSettings.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, SettingsActivity.class));
-            }
-        });
-
-        btnPrev = (ImageButton) findViewById(R.id.btnPrev);
-        btnPlayPause = (ImageButton) findViewById(R.id.btnPlayPause);
-        btnNext = (ImageButton) findViewById(R.id.btnNext);
-
-        btnPrev.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                sendControl("prev");
-            }
-        });
-        btnPlayPause.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // The icon already reflects the last reported state, so the
-                // command is its opposite: playing → pause, paused → resume.
-                sendControl(playing ? "pause" : "resume");
-            }
-        });
-        btnNext.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                sendControl("next");
-            }
-        });
-
-        showBoot();
-
-        String url = Prefs.get(this, Prefs.KEY_URL, Prefs.DEFAULT_URL);
-        String user = Prefs.get(this, Prefs.KEY_USER, Prefs.DEFAULT_USER);
-        String pass = Prefs.get(this, Prefs.KEY_PASS, Prefs.DEFAULT_PASS);
-        relayUrl = url;
-        relayUser = user;
-        relayPass = pass;
-        int ms = Prefs.getInt(this, Prefs.KEY_POLL_MS, Prefs.DEFAULT_POLL_MS);
-        client = new RelayClient(new RelayClient.Callback() {
-            public void onStatus(Status s) {
-                handleStatus(s);
-            }
-
-            public void onDiagnosis(Diagnosis d) {
-                showDiagnosis(d);
-            }
-
-            public void onRetryScheduled() {
-                // The diagnosis screen already shows the retry; its ticker
-                // counts it down live.
-            }
-        }, url, user, pass, ms, new ResourceLabels(this));
-        client.start();
+        startActivity(new Intent(this, LineProbeActivity.class));
+        finish();
     }
 
     public void onResume() {
