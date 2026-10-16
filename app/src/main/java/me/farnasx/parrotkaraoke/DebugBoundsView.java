@@ -21,6 +21,7 @@ public class DebugBoundsView extends View {
 
     private final RectF box = new RectF();
     private String info = "";
+    private String info2 = "";
 
     public DebugBoundsView(Context context) {
         this(context, null);
@@ -36,10 +37,15 @@ public class DebugBoundsView extends View {
     }
 
     public void update(RectF r, String info) {
+        update(r, info, null);
+    }
+
+    public void update(RectF r, String info, String info2) {
         if (r != null) {
             box.set(r);
         }
         this.info = (info == null) ? "" : info;
+        this.info2 = (info2 == null) ? "" : info2;
         invalidate();
     }
 
@@ -55,5 +61,8 @@ public class DebugBoundsView extends View {
         textPaint.setColor(0xFFFFFF22);
         textPaint.setTextSize(22f);
         canvas.drawText(info, 10f, getHeight() - 12f, textPaint);
+        if (info2.length() > 0) {
+            canvas.drawText(info2, 10f, getHeight() - 42f, textPaint);
+        }
     }
 }

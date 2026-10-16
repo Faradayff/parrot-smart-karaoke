@@ -192,6 +192,22 @@ public class StatusParserTest {
     }
 
     @Test
+    public void cyrillicHomoglyphsBecomeLatin() {
+        // Some lyric sources (and copy/paste history) carry Cyrillic
+        // look-alikes (А а Е е О о С с). The car font may lack their glyphs,
+        // which shows up as letters vanishing from the text; map them back
+        // to the Latin letters they are imitating.
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"playing\":true,\"line\":1,"
+                + "\"lineText\":\"\u0410 Dios l\u0430 concedió\","
+                + "\"prevLine\":\"\u0435ntr\u0430 n\u043E s\u0435\","
+                + "\"nextLines\":[{\"t\":1,\"text\":\"\u0421o\"}]}");
+        assertEquals("A Dios la concedió", s.lineText);
+        assertEquals("entra no se", s.prevLine);
+        assertEquals("Co", s.nextLines.get(0).text);
+    }
+
+    @Test
     public void plainLyricsKeepTheirNewlines() {
         Status s = StatusParser.parse(
                 "{\"ok\":true,\"playing\":false,"

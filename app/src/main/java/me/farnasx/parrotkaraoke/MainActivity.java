@@ -721,7 +721,24 @@ public class MainActivity extends Activity {
             }
             String info = "win=" + winW + " box=" + w + " sp=" + debugChosenSp
                     + " textW=" + debugTextW + " lines=" + lines + " maxL=" + maxLw;
-            debugBounds.update(new android.graphics.RectF(x, y, x + w, y + h), info);
+            // cp= shows the first characters' Unicode code points, so odd or
+            // imposter letters (Cyrillic homoglyphs, zero-width chars, ...)
+            // are visible in the photo instead of hiding in the rendered text.
+            char[] t = current.getText() == null ? null
+                    : current.getText().toString().toCharArray();
+            String cp = null;
+            if (t != null) {
+                StringBuilder cps = new StringBuilder(" cp=");
+                int n = t.length < 10 ? t.length : 10;
+                for (int i = 0; i < n; i++) {
+                    if (i > 0) {
+                        cps.append(' ');
+                    }
+                    cps.append(Integer.toHexString(t[i] & 0xFFFF));
+                }
+                cp = cps.toString();
+            }
+            debugBounds.update(new android.graphics.RectF(x, y, x + w, y + h), info, cp);
         } catch (Throwable ignored) {
         }
     }

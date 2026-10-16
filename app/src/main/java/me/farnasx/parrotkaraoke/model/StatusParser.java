@@ -81,6 +81,11 @@ public final class StatusParser {
      * break a line at those characters, so an affected line renders as one
      * giant unbreakable line that gets clipped at both ends of its box.
      * Regular spaces, tabs, newlines and everything else are untouched.
+     *
+     * It also maps the Cyrillic homoglyphs that some lyric sources smuggle in
+     * (А/Е/О/С and lowercase) back to Latin A/E/O/C: the car stock font has no
+     * glyph for some of them, so they render as blank holes in otherwise
+     * normal text (e.g. "A Dios" losing its "A").
      */
     static String displaySpace(String s) {
         if (s == null || s.length() == 0) {
@@ -98,6 +103,22 @@ public final class StatusParser {
                 out.append(' ');
             } else if (c == '\u2011') {
                 out.append('-');
+            } else if (c == '\u0410') {
+                out.append('A');
+            } else if (c == '\u0430') {
+                out.append('a');
+            } else if (c == '\u0415') {
+                out.append('E');
+            } else if (c == '\u0435') {
+                out.append('e');
+            } else if (c == '\u041E') {
+                out.append('O');
+            } else if (c == '\u043E') {
+                out.append('o');
+            } else if (c == '\u0421') {
+                out.append('C');
+            } else if (c == '\u0441') {
+                out.append('c');
             } else {
                 out.append(c);
             }
