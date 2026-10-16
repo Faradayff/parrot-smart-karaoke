@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.util.AttributeSet;
 import android.view.View;
 
 /**
@@ -22,7 +23,15 @@ public class DebugBoundsView extends View {
     private String info = "";
 
     public DebugBoundsView(Context context) {
-        super(context);
+        this(context, null);
+    }
+
+    // REQUIRED by XML inflation on Android 2.3.7: that LayoutInflater looks
+    // up exactly (Context, AttributeSet) and has NO fallback to the
+    // one-arg constructor (later platforms do), so without this the app
+    // dies in setContentView with NoSuchMethodException.
+    public DebugBoundsView(Context context, AttributeSet attrs) {
+        super(context, attrs);
         setWillNotDraw(false);
     }
 
