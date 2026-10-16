@@ -140,11 +140,6 @@ public class MainActivity extends Activity {
     private long retryDueAt;
     private static final long TICK_MS = 500L;
 
-    // TEMPORARY in-car diagnostic (v1.9.11-dbg) — remove before release.
-    private DebugBoundsView debugBounds;
-    private int debugTextW = -1;
-    private int debugChosenSp = -1;
-
     /** Current size (sp) of @+id/current. fitCurrentLine and
      *  verifyCurrentFits keep it in sync so the shrink steps can never run
      *  below the floor. */
@@ -177,18 +172,6 @@ public class MainActivity extends Activity {
         msgDetail = (TextView) findViewById(R.id.msgDetail);
         retryLine = (TextView) findViewById(R.id.retryLine);
         footer = (TextView) findViewById(R.id.footer);
-
-        // TEMPORARY in-car diagnostic (v1.9.11-dbg): red box outline around
-        // @+id/current + live metrics readout. Refresh on every layout pass.
-        debugBounds = (DebugBoundsView) findViewById(R.id.debugBounds);
-        if (debugBounds != null) {
-            band.getViewTreeObserver().addOnGlobalLayoutListener(
-                    new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-                public void onGlobalLayout() {
-                    updateDebugInfo();
-                }
-            });
-        }
 
         View btnSettings = findViewById(R.id.btnSettings);
         btnSettings.setOnClickListener(new View.OnClickListener() {
@@ -661,7 +644,6 @@ public class MainActivity extends Activity {
                 return;
             }
             int textW = current.getWidth() - current.getPaddingLeft() - current.getPaddingRight();
-            debugTextW = textW; // diagnostic (v1.9.11-dbg)
             if (textW <= 0) {
                 // Aún sin layout (primer render): reintentar tras el layout.
                 band.post(new Runnable() { public void run() { fitCurrentLine(); } });
@@ -696,7 +678,6 @@ public class MainActivity extends Activity {
                     break;
                 }
             }
-            debugChosenSp = chosenSp; // diagnostic (v1.9.11-dbg)
             currentSp = chosenSp;
             current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, chosenSp);
         } catch (Throwable ignored) {
@@ -745,61 +726,8 @@ public class MainActivity extends Activity {
             if (maxL > viewW + 0.5f && currentSp > CURRENT_SP_FLOOR) {
                 currentSp = Math.max(CURRENT_SP_FLOOR, currentSp - 2);
                 current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, currentSp);
-                debugChosenSp = currentSp; // yellow readout shows the final size
                 band.post(new Runnable() { public void run() { verifyCurrentFits(0); } });
             }
-        } catch (Throwable ignored) {
-        }
-    }
-
-    // TEMPORARY in-car diagnostic (v1.9.11-dbg).
-    private void updateDebugInfo() {
-        if (debugBounds == null || current == null) {
-            return;
-        }
-        try {
-            int winW = 0;
-            try {
-                winW = getWindow().findViewById(android.R.id.content).getWidth();
-            } catch (Throwable ignored) {
-            }
-            int x = band.getLeft() + current.getLeft();
-            int y = band.getTop() + current.getTop();
-            int w = current.getWidth();
-            int h = current.getHeight();
-            int lines = -1;
-            int maxLw = -1;
-            android.text.Layout layout = current.getLayout();
-            if (layout != null) {
-                lines = layout.getLineCount();
-                maxLw = 0;
-                for (int i = 0; i < lines; i++) {
-                    int lw = (int) layout.getLineWidth(i);
-                    if (lw > maxLw) {
-                        maxLw = lw;
-                    }
-                }
-            }
-            String info = "win=" + winW + " box=" + w + " sp=" + debugChosenSp
-                    + " textW=" + debugTextW + " lines=" + lines + " maxL=" + maxLw;
-            // cp= shows the first characters' Unicode code points, so odd or
-            // imposter letters (Cyrillic homoglyphs, zero-width chars, ...)
-            // are visible in the photo instead of hiding in the rendered text.
-            char[] t = current.getText() == null ? null
-                    : current.getText().toString().toCharArray();
-            String cp = null;
-            if (t != null) {
-                StringBuilder cps = new StringBuilder(" cp=");
-                int n = t.length < 10 ? t.length : 10;
-                for (int i = 0; i < n; i++) {
-                    if (i > 0) {
-                        cps.append(' ');
-                    }
-                    cps.append(Integer.toHexString(t[i] & 0xFFFF));
-                }
-                cp = cps.toString();
-            }
-            debugBounds.update(new android.graphics.RectF(x, y, x + w, y + h), info, cp);
         } catch (Throwable ignored) {
         }
     }
