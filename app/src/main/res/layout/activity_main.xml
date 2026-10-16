@@ -140,25 +140,27 @@
                 android:textColor="@color/other"
                 android:textSize="18sp" />
 
-            <FrameLayout
+            <!-- IMPORTANT (Android 2.3.7): current must be a DIRECT child of
+                 this vertical LinearLayout. Wrapped in a FrameLayout with
+                 margins, Gingerbread measures the child wider than its final
+                 bounds, so long lines are wrapped at a bigger width than the
+                 box and then clipped at both ends (in-car screenshots v1.9.9:
+                 'A' and 'la' cut mid-glyph). In a LinearLayout the measured and
+                 laid-out widths always agree (v1.8 layout never clipped).
+                 height=0+weight=1 + gravity=center keeps it vertically
+                 centered between prev1 and next1. -->
+            <TextView
+                android:id="@+id/current"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:clipChildren="false">
-
-                <TextView
-                    android:id="@+id/current"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="14dp"
-                    android:layout_marginRight="14dp"
-                    android:layout_gravity="center"
-                    android:gravity="center"
-                    android:maxLines="4"
-                    android:textColor="@color/currentActive"
-                    android:textSize="34sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
+                android:layout_marginLeft="14dp"
+                android:layout_marginRight="14dp"
+                android:gravity="center"
+                android:maxLines="4"
+                android:textColor="@color/currentActive"
+                android:textSize="34sp"
+                android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"

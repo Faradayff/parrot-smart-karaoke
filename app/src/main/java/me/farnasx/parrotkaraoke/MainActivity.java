@@ -644,10 +644,23 @@ public class MainActivity extends Activity {
                         android.util.TypedValue.COMPLEX_UNIT_SP, sp, getResources().getDisplayMetrics()));
                 android.text.StaticLayout probe = new android.text.StaticLayout(t, p, textW,
                         android.text.Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-                // Both the line count and the widest line must fit the box: a
-                // line wider than textW (e.g. an unbreakable word left by any
+                // Both the line count and the REAL widest line must fit the
+                // box: Layout.getWidth() returns the box width itself (always
+                // passes), so the actual per-line widths have to be checked —
+                // a line wider than textW (an unbreakable word left by any
                 // stray glue character) would be clipped at the box edges.
-                if (probe.getLineCount() <= 2 && probe.getWidth() <= textW) {
+                boolean fits = probe.getLineCount() <= 2;
+                if (fits) {
+                    int lines = probe.getLineCount();
+                    int maxW = 0;
+                    for (int i = 0; i < lines; i++) {
+                        if (probe.getLineWidth(i) > maxW) {
+                            maxW = probe.getLineWidth(i);
+                        }
+                    }
+                    fits = maxW <= textW;
+                }
+                if (fits) {
                     chosenSp = sp;
                     break;
                 }
