@@ -654,8 +654,9 @@ public class MainActivity extends Activity {
                     int lines = probe.getLineCount();
                     int maxW = 0;
                     for (int i = 0; i < lines; i++) {
-                        if (probe.getLineWidth(i) > maxW) {
-                            maxW = probe.getLineWidth(i);
+                        float w = probe.getLineWidth(i); // returns float
+                        if (w > maxW) {
+                            maxW = (int) w;
                         }
                     }
                     fits = maxW <= textW;
