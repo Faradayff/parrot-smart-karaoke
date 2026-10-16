@@ -110,10 +110,12 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- Karaoke band: 1 previous line, the current (large) line with
-             breathing room so it never crowds the small neighbours, and up
-             to 2 upcoming lines. A 3-line current phrase fits at the full
-             34sp; phrases wrapping more are auto-shrunk in code (see
+        <!-- Karaoke band, pinned at both ends: the 1 previous line stays
+             fixed at the top (zero margins) and the 2 upcoming lines stay
+             fixed at the bottom (zero margins), whatever the current line
+             does in between. The big current line takes all the middle
+             space and is centered in it; a 3-line phrase still fits at the
+             full 34sp, and longer wraps are auto-shrunk in code (see
              fitCurrentLine, floor 26sp) so the band never overflows.
              @+id/current intentionally sets NO ellipsize — on Android 2.3.7
              ellipsize truncates the text early (to 2 lines) regardless of
@@ -122,56 +124,62 @@
             android:id="@+id/band"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"
+            android:clipChildren="false"
             android:orientation="vertical">
 
             <TextView
                 android:id="@+id/prev1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:layout_marginBottom="4dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:singleLine="true"
                 android:textColor="@color/other"
                 android:textSize="18sp" />
 
-            <TextView
-                android:id="@+id/current"
+            <FrameLayout
+                android:id="@+id/currentWrap"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="8dp"
-                android:gravity="center"
-                android:maxLines="4"
-                android:textColor="@color/currentActive"
-                android:textSize="34sp"
-                android:textStyle="bold" />
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipChildren="false">
 
-            <TextView
-                android:id="@+id/next1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:layout_marginBottom="1dp"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:singleLine="true"
-                android:textColor="@color/other"
-                android:textSize="18sp" />
+                <TextView
+                    android:id="@+id/current"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:maxLines="4"
+                    android:textColor="@color/currentActive"
+                    android:textSize="34sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
 
-            <TextView
-                android:id="@+id/next2"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:layout_marginBottom="0dp"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:singleLine="true"
-                android:textColor="@color/other"
-                android:textSize="15sp" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/next1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:singleLine="true"
+                    android:textColor="@color/other"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/next2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:singleLine="true"
+                    android:textColor="@color/other"
+                    android:textSize="15sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Plain (unsynced) lyrics -->
