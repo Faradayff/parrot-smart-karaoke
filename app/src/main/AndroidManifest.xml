@@ -25,5 +25,18 @@
             android:name=".SettingsActivity"
             android:exported="true"
             android:theme="@style/AppTheme" />
+
+        <!-- PROBE ONLY (test build): diagnose the two-line cap on the big lyric line. -->
+        <activity
+            android:name=".LineProbeActivity"
+            android:exported="true"
+            android:label="LINE PROBE (test)"
+            android:screenOrientation="landscape"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

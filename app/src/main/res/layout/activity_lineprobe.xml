@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PROBE ONLY (test build). Four variants of the "current lyric line" view
+     side by side with the runtime diagnostics. Do not ship. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="horizontal"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <!-- Left: the four probe views. Natural heights (no weights on the rows)
+         so the free-wrap view is never starved of vertical budget by its
+         neighbours — that is exactly what we are trying to isolate. -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="3"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:gravity="center"
+            android:text="Sample: La va a pagar el notas al que le he dado un voleón (¿cómo?, ¿cómo?)"
+            android:textColor="@color/subtitle"
+            android:textSize="10sp" />
+
+        <!-- A: exactly like the band's current view -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="A - band view: maxLines=3 + ellipsize"
+            android:textColor="@color/subtitle"
+            android:textSize="10sp" />
+        <TextView
+            android:id="@+id/pA"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="3"
+            android:textColor="@color/currentActive"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <!-- B: no cap at all -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:text="B - no maxLines, no ellipsize (free wrap)"
+            android:textColor="@color/subtitle"
+            android:textSize="10sp" />
+        <TextView
+            android:id="@+id/pB"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/other"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <!-- C: maxLines=5 + ellipsize -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:text="C - maxLines=5 + ellipsize"
+            android:textColor="@color/subtitle"
+            android:textSize="10sp" />
+        <TextView
+            android:id="@+id/pC"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="5"
+            android:textColor="@color/other"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <!-- D: maxLines=3, no ellipsize -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:text="D - maxLines=3, NO ellipsize"
+            android:textColor="@color/subtitle"
+            android:textSize="10sp" />
+        <TextView
+            android:id="@+id/pD"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="3"
+            android:textColor="@color/other"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:background="@color/divider" />
+
+    <!-- Right: runtime diagnostics -->
+    <ScrollView
+        android:id="@+id/diagScroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2">
+        <TextView
+            android:id="@+id/diag"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/plainText"
+            android:textSize="10sp" />
+    </ScrollView>
+</LinearLayout>
