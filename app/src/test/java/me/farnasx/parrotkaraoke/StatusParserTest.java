@@ -25,10 +25,7 @@ public class StatusParserTest {
             + "\"cover\":[\"https://i.scdn.co/image/abc\"]},"
             + "\"lyricsSynced\":true,\"lyricsLines\":3,\"line\":1,"
             + "\"lineText\":\"Is this just fantasy?\","
-            + "\"lines\":["
-            + "{\"t\":6000,\"text\":\"Is this the real life?\"},"
-            + "{\"t\":9000,\"text\":\"Is this just fantasy?\"},"
-            + "{\"t\":12000,\"text\":\"Caught in a landslide\"}],"
+            + "\"prevLine\":\"Is this the real life?\","
             + "\"nextLines\":[{\"t\":12000,\"text\":\"Caught in a landslide\"}]}"
             + "}";
 
@@ -50,9 +47,7 @@ public class StatusParserTest {
         assertEquals(3, s.lyricsLines);
         assertEquals(1, s.line);
         assertEquals("Is this just fantasy?", s.lineText);
-        assertEquals(3, s.lines.size());
-        assertEquals(9000L, s.lines.get(1).t);
-        assertEquals("Is this just fantasy?", s.lines.get(1).text);
+        assertEquals("Is this the real life?", s.prevLine);
         assertEquals(1, s.nextLines.size());
         assertEquals("", s.plain);
         assertEquals(7L, s.version);
@@ -86,7 +81,6 @@ public class StatusParserTest {
         assertEquals("spotify not authenticated", s.error);
         assertNull(s.track);
         assertEquals(-1, s.line);
-        assertTrue(s.lines.isEmpty());
     }
 
     @Test
@@ -110,7 +104,6 @@ public class StatusParserTest {
         assertEquals("t2", s.track.id);
         assertFalse(s.lyricsSynced);
         assertEquals("line one\nline two", s.plain);
-        assertTrue(s.lines.isEmpty());
         assertTrue(s.nextLines.isEmpty());
         assertEquals(-1, s.line);
     }
@@ -128,7 +121,6 @@ public class StatusParserTest {
         assertFalse(s.ok);
         assertNull(s.track);
         assertEquals(-1, s.line);
-        assertTrue(s.lines.isEmpty());
     }
 
     @Test
@@ -147,19 +139,16 @@ public class StatusParserTest {
     @Test
     public void blankLyricLinesAreSkipped() {
         Status s = StatusParser.parse(
-                "{\"ok\":true,\"line\":0,\"lines\":["
+                "{\"ok\":true,\"line\":0,\"nextLines\":["
                         + "{\"t\":1,\"text\":\"  \"},"
                         + "{\"t\":2,\"text\":\"hello\"},"
                         + "\"gibberish\"]}");
-        assertEquals(1, s.lines.size());
-        assertEquals("hello", s.lines.get(0).text);
+        assertEquals(1, s.nextLines.size());
+        assertEquals("hello", s.nextLines.get(0).text);
     }
 
     @Test
-    public void relayAppliedDelayParsesFieldsAndSkipsLines() {
-        // New relay: delayMs present (>= 0), prevLine present, "lines" trimmed
-        // (not sent). The parser must keep the served fields and not parse
-        // the (absent) full lines array.
+    public void relayAppliedDelayParsesBandFields() {
         Status s = StatusParser.parse(
                 "{\"ok\":true,\"auth\":true,\"playing\":true,\"positionMs\":42000,"
                 + "\"version\":7,\"delayMs\":1200,\"lyricsSynced\":true,\"line\":2,"
@@ -171,31 +160,31 @@ public class StatusParserTest {
         assertEquals(2, s.line);
         assertEquals("Caught in a landslide", s.lineText);
         assertEquals(1, s.nextLines.size());
-        assertTrue("relay-applied delay: full lines array must not be parsed",
-                s.lines.isEmpty());
     }
 
     @Test
-    public void zeroDelayIsAPresentDelay() {
-        // delayMs=0 is a legitimate "no delay" from a new relay: present, and
-        // the app must still treat it as relay-applied (not fall back).
+    public void zeroDelayIsAValidDelay() {
+        // delayMs=0 is a legitimate "no delay" value from the relay.
         Status s = StatusParser.parse(
                 "{\"ok\":true,\"playing\":true,\"delayMs\":0,"
                 + "\"line\":0,\"lineText\":\"a\",\"prevLine\":\"\"}");
         assertEquals(0L, s.delayMs);
         assertEquals("", s.prevLine);
-        assertTrue(s.lines.isEmpty());
+        assertEquals(0, s.line);
+        assertEquals("a", s.lineText);
     }
 
     @Test
-    public void oldRelayWithoutDelayMsKeepsLinesParsed() {
-        // Older relay: no delayMs -> -1 (fallback), so the full "lines" array
-        // is parsed and the local re-derivation keeps working.
+    public void oldRelayWithoutDelayMsKeepsDefault() {
+        // A relay predating the delay feature does not send delayMs -> -1. The
+        // served line/lineText are still parsed; a stray "lines" array, if any,
+        // is simply ignored.
         Status s = StatusParser.parse(
                 "{\"ok\":true,\"playing\":true,\"line\":0,\"lineText\":\"a\","
                 + "\"lines\":[{\"t\":1000,\"text\":\"a\"},{\"t\":2000,\"text\":\"b\"}]}");
         assertEquals(-1L, s.delayMs);
-        assertEquals(2, s.lines.size());
+        assertEquals(0, s.line);
+        assertEquals("a", s.lineText);
         assertEquals("", s.prevLine);
     }
 }
