@@ -41,6 +41,11 @@ public class MainActivity extends Activity {
     private static final int COLOR_PLAIN_ACTIVE = 0xFFC8CCD0;
     private static final int COLOR_PLAIN_PAUSED = 0xFF6B7280;
 
+    // Base size of the current line (matches activity_main.xml) and the floor
+    // used by fitCurrentLine when the phrase wraps past what fits.
+    private static final int CURRENT_SP_BASE = 34;
+    private static final int CURRENT_SP_MIN = 26;
+
     private TextView title;
     private TextView subtitle;
     private ImageView cover;
@@ -601,6 +606,10 @@ public class MainActivity extends Activity {
             setBandSlot(bandNext[i], xt);
         }
 
+        // Keep the band inside the available height: shrink the current line
+        // (down to CURRENT_SP_MIN) only as much as a long wrap needs.
+        fitCurrentLine();
+
         int curColor = active ? COLOR_CURRENT_ACTIVE : COLOR_CURRENT_PAUSED;
         int othColor = active ? COLOR_OTHER_ACTIVE : COLOR_OTHER_PAUSED;
         current.setTextColor(curColor);
@@ -609,6 +618,61 @@ public class MainActivity extends Activity {
         next2.setTextColor(othColor);
 
         setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
+    }
+
+    // Ajusta el tamaño de la línea actual (max CURRENT_SP_BASE, min
+    // CURRENT_SP_MIN) para que prev1 + current + next1 + next2 quepan en la
+    // altura del band. Se llama en renderBand() después de setText.
+    private void fitCurrentLine() {
+        try {
+            CharSequence t = current.getText();
+            if (t == null || t.length() == 0) {
+                current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, CURRENT_SP_BASE);
+                return;
+            }
+            int bandH = band.getHeight();
+            int bandW = band.getWidth();
+            if (bandH <= 0 || bandW <= 0) {
+                // Aún sin layout (primer render): reintentar tras el layout.
+                band.post(new Runnable() { public void run() { fitCurrentLine(); } });
+                return;
+            }
+            int textW = bandW - current.getPaddingLeft() - current.getPaddingRight();
+            int otherH = 0;
+            if (prev1.getVisibility() == View.VISIBLE) otherH += slotH(prev1);
+            if (next1.getVisibility() == View.VISIBLE) otherH += slotH(next1);
+            if (next2.getVisibility() == View.VISIBLE) otherH += slotH(next2);
+            int curMargin = 0;
+            if (current.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) current.getLayoutParams();
+                curMargin = lp.topMargin + lp.bottomMargin;
+            }
+            int avail = bandH - otherH - curMargin - 4; // 4 px de seguridad
+            int chosenSp = CURRENT_SP_MIN;
+            android.text.TextPaint p = current.getPaint();
+            for (int sp = CURRENT_SP_BASE; sp >= CURRENT_SP_MIN; sp--) {
+                p.setTextSize(android.util.TypedValue.applyDimension(
+                        android.util.TypedValue.COMPLEX_UNIT_SP, sp, getResources().getDisplayMetrics()));
+                android.text.StaticLayout probe = new android.text.StaticLayout(t, p, textW,
+                        android.text.Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+                if (probe.getHeight() <= avail) { chosenSp = sp; break; }
+            }
+            current.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, chosenSp);
+        } catch (Throwable ignored) {
+            // Nunca tumbar el band por un fallo de medición.
+        }
+    }
+
+    private int slotH(TextView v) {
+        int h = v.getHeight();
+        if (h <= 0 && v.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+            h = 0; // aún sin medir; asumimos 0 (el bucle de sp bajará si hace falta)
+        }
+        if (v.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) v.getLayoutParams();
+            h += lp.topMargin + lp.bottomMargin;
+        }
+        return h;
     }
 
     private void setBandSlot(TextView v, String text) {

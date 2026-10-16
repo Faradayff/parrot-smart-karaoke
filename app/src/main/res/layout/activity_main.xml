@@ -112,7 +112,9 @@
 
         <!-- Karaoke band: 1 previous line, the current (large) line with
              breathing room so it never crowds the small neighbours, and up
-             to 2 upcoming lines. The current line may wrap to 4 lines (cap);
+             to 2 upcoming lines. A 3-line current phrase fits at the full
+             34sp; phrases wrapping more are auto-shrunk in code (see
+             fitCurrentLine, floor 26sp) so the band never overflows.
              @+id/current intentionally sets NO ellipsize — on Android 2.3.7
              ellipsize truncates the text early (to 2 lines) regardless of
              maxLines, so we let it wrap fully instead. -->
@@ -128,7 +130,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:layout_marginBottom="6dp"
+                android:layout_marginBottom="4dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:singleLine="true"
@@ -139,8 +141,8 @@
                 android:id="@+id/current"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="14dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"
                 android:gravity="center"
                 android:maxLines="4"
                 android:textColor="@color/currentActive"
@@ -151,8 +153,8 @@
                 android:id="@+id/next1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="2dp"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="1dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:singleLine="true"
@@ -164,7 +166,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
-                android:layout_marginBottom="1dp"
+                android:layout_marginBottom="0dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:singleLine="true"
