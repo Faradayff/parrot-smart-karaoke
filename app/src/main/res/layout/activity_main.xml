@@ -112,8 +112,10 @@
 
         <!-- Karaoke band: 1 previous line, the current (large) line with
              breathing room so it never crowds the small neighbours, and up
-             to 2 upcoming lines. The current line may wrap to 3 lines;
-             dropping the third upcoming line left room for that. -->
+             to 2 upcoming lines. The current line may wrap to 4 lines (cap);
+             @+id/current intentionally sets NO ellipsize — on Android 2.3.7
+             ellipsize truncates the text early (to 2 lines) regardless of
+             maxLines, so we let it wrap fully instead. -->
         <LinearLayout
             android:id="@+id/band"
             android:layout_width="match_parent"
@@ -139,9 +141,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="14dp"
-                android:ellipsize="end"
                 android:gravity="center"
-                android:maxLines="3"
+                android:maxLines="4"
                 android:textColor="@color/currentActive"
                 android:textSize="34sp"
                 android:textStyle="bold" />
