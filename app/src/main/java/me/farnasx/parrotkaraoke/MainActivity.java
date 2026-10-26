@@ -548,10 +548,17 @@ public class MainActivity extends Activity {
             renderBand(s, active);
         } else if (nonEmpty(s.plain)) {
             renderPlain(s.plain, active);
+        } else if (nonEmpty(s.error)) {
+            // The track exists but the relay could not fetch its lyrics
+            // (a transient lrcLib 5xx is the usual cause): say so plainly.
+            // The raw provider answer is kept for debug mode, where the
+            // JSON dump is what actually matters.
+            showPlainMessage(getString(R.string.lyrics_busy_title),
+                    debugMode ? s.error : getString(R.string.lyrics_busy_detail));
+            setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
         } else {
-            // Show the relay error (e.g. a transient lrclib 503) as detail if any.
-            showPlainMessage(getString(R.string.no_lyrics),
-                    nonEmpty(s.error) ? s.error : "");
+            // No error and no lyrics: the provider genuinely has none.
+            showPlainMessage(getString(R.string.no_lyrics), "");
             setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
         }
     }

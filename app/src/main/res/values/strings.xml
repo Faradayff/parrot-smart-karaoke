@@ -5,6 +5,8 @@
     <string name="connecting">Connecting to the relay…</string>
     <string name="no_track">Nothing playing right now</string>
     <string name="no_lyrics">This song doesn\'t have lyrics yet</string>
+    <string name="lyrics_busy_title">Couldn\'t load the lyrics right now</string>
+    <string name="lyrics_busy_detail">The lyrics service is busy. It will retry automatically…</string>
     <string name="relay_error">The relay returned an error</string>
     <string name="auth_error_detail">Spotify is not authenticated on the relay.\nOpen the relay URL with /login in a browser.</string>
     <string name="unknown_title">-</string>

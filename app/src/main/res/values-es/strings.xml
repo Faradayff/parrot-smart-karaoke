@@ -8,6 +8,8 @@
     <string name="connecting">Conectando con el relay…</string>
     <string name="no_track">Nada sonando ahora mismo</string>
     <string name="no_lyrics">Esta canción aún no tiene letra</string>
+    <string name="lyrics_busy_title">No se pudo cargar la letra ahora mismo</string>
+    <string name="lyrics_busy_detail">El servicio de letras está ocupado. Se reintentará automáticamente…</string>
     <string name="relay_error">El relay ha devuelto un error</string>
     <string name="auth_error_detail">Spotify no está autenticado en el relay.\nAbre la URL del relay con /login en un navegador.</string>
     <string name="unknown_title">-</string>
