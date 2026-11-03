@@ -111,6 +111,37 @@ public class RelayClientTest {
     }
 
     @Test
+    public void cacheClearUrlReplacesStatusWithCacheClear() {
+        assertEquals("http://relay/cache/clear",
+                RelayClient.cacheClearUrlFor("http://relay/status"));
+    }
+
+    @Test
+    public void cacheClearUrlKeepsHostAndBasePath() {
+        // A relay mounted under a base path: only the endpoint changes.
+        assertEquals("https://host/lyrics/cache/clear",
+                RelayClient.cacheClearUrlFor("https://host/lyrics/status"));
+        // A settings URL that points at the relay root: the path is appended.
+        assertEquals("http://10.0.0.5:8899/cache/clear",
+                RelayClient.cacheClearUrlFor("http://10.0.0.5:8899/"));
+    }
+
+    @Test
+    public void cacheClearUrlToleratesSloppyStoredUrls() {
+        assertEquals("http://relay/cache/clear",
+                RelayClient.cacheClearUrlFor("http://relay/status?x=1"));
+        assertEquals("http://relay/cache/clear",
+                RelayClient.cacheClearUrlFor("http://relay/status/"));
+        assertEquals("http://relay/cache/clear",
+                RelayClient.cacheClearUrlFor("http://relay/control"));
+        assertEquals("http://relay/cache/clear",
+                RelayClient.cacheClearUrlFor("  http://relay/status  "));
+        // Already pointing at the endpoint: idempotent.
+        assertEquals("http://relay/cache/clear",
+                RelayClient.cacheClearUrlFor("http://relay/cache/clear"));
+    }
+
+    @Test
     public void readTimeoutIsLongerInWaitMode() {
         assertTrue(RelayClient.WAIT_READ_TIMEOUT_MS > RelayClient.WAIT_TIMEOUT_MS);
         assertTrue(RelayClient.WAIT_READ_TIMEOUT_MS > Http.READ_TIMEOUT_MS);

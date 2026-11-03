@@ -141,5 +141,33 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="@string/settings_save" />
+
+        <!-- Dangerous relay maintenance: wipe the lyrics cache (POST /cache/clear).
+             Kept deliberately apart from the form and in a red, bordered
+             button so it is never mistaken for a settings control. -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:text="@string/settings_cache"
+            android:textColor="@color/subtitle"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_cache_hint"
+            android:textColor="@color/subtitle"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnCacheClear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/btn_danger"
+            android:text="@string/settings_cache_clear"
+            android:textColor="@color/danger"
+            android:textStyle="bold" />
     </LinearLayout>
 </ScrollView>

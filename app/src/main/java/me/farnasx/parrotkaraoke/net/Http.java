@@ -118,17 +118,30 @@ public final class Http {
     }
 
     /**
-     * POSTs {@code url} (the relay's {@code /control} endpoint) and discards
-     * the body. Same timeouts and Basic Auth as {@link #get}; non-2xx answers
-     * throw the same {@link HttpException}, so a control that the relay rejects
-     * can be spotted later in the debug log.
+     * POSTs {@code url} and returns the response body (empty when there is
+     * none). The relay's {@code /control} endpoint answers a small JSON that
+     * its caller ignores; {@code /cache/clear} answers the wipe report
+     * ({@code removed}, {@code freedBytes}) that the settings screen shows.
+     * Same timeouts and Basic Auth as {@link #get}; non-2xx answers throw the
+     * same {@link HttpException}, so a command the relay rejects can be
+     * spotted later in the debug log.
      */
-    public static void post(String url, String user, String pass) throws IOException {
+    public static String post(String url, String user, String pass) throws IOException {
+        return post(url, user, pass, READ_TIMEOUT_MS);
+    }
+
+    /**
+     * Same as {@link #post}, with this call's own read timeout. The cache
+     * wipe can spend a while deleting files off the relay's disk, so it is
+     * given a bit more grace than the 6 s a transport command gets.
+     */
+    public static String post(String url, String user, String pass,
+                              int readTimeoutMs) throws IOException {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         try {
             c.setRequestMethod("POST");
             c.setConnectTimeout(CONNECT_TIMEOUT_MS);
-            c.setReadTimeout(READ_TIMEOUT_MS);
+            c.setReadTimeout((readTimeoutMs > 0) ? readTimeoutMs : READ_TIMEOUT_MS);
             c.setRequestProperty("Accept", "application/json");
             c.setRequestProperty("User-Agent", "parrot-karaoke/1.7 (Android)");
 
@@ -154,6 +167,7 @@ public final class Http {
                 }
                 throw new HttpException(code, snippet, authSent ? user : null, authSent);
             }
+            return new String(readAll(c.getInputStream()), "UTF-8");
         } finally {
             c.disconnect();
         }

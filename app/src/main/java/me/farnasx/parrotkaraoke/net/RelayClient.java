@@ -337,6 +337,28 @@ public final class RelayClient {
      * @param action one of {@code next}, {@code prev}, {@code pause}, {@code resume}
      */
     public static String controlUrlFor(String statusUrl, String action) {
+        return relayBaseFor(statusUrl) + "/control?action=" + action;
+    }
+
+    /**
+     * Derives the relay cache-clear URL ({@code POST /cache/clear}) from the
+     * configured status URL: {@code http://host/status} →
+     * {@code http://host/cache/clear}. Same stripping rules as
+     * {@link #controlUrlFor}: trailing slashes, any query, and a final
+     * {@code /status}/{@code /control} segment are removed; everything before
+     * them — scheme, host, and base paths like {@code /lyrics} — is kept.
+     */
+    public static String cacheClearUrlFor(String statusUrl) {
+        return relayBaseFor(statusUrl) + "/cache/clear";
+    }
+
+    /**
+     * The relay base a mounted endpoint sits on: the stored status URL minus
+     * its query, trailing slashes, and the final {@code /status},
+     * {@code /control} or {@code /cache/clear} segment (tolerant of a URL
+     * stored at the root or already pointing at a sibling endpoint).
+     */
+    private static String relayBaseFor(String statusUrl) {
         String base = (statusUrl == null) ? "" : statusUrl.trim();
         int q = base.indexOf('?');
         if (q >= 0) {
@@ -349,8 +371,10 @@ public final class RelayClient {
             base = base.substring(0, base.length() - "/status".length());
         } else if (base.endsWith("/control")) {
             base = base.substring(0, base.length() - "/control".length());
+        } else if (base.endsWith("/cache/clear")) {
+            base = base.substring(0, base.length() - "/cache/clear".length());
         }
-        return base + "/control?action=" + action;
+        return base;
     }
 
     /** Appends the long-poll query parameters (and the delay) to the relay status URL. */

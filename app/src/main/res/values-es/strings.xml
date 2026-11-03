@@ -57,6 +57,21 @@
     <string name="settings_save">GUARDAR</string>
     <string name="settings_saved">Guardado</string>
 
+    <!-- Peligroso: limpia la caché de letras del relay (POST /cache/clear) -->
+    <string name="settings_cache">Caché de letras del relay (peligroso)</string>
+    <string name="settings_cache_hint">Borra todas las letras que el relay ha cacheado (memoria + disco). Las canciones limpiadas se descargarán de nuevo la próxima vez que suenen y aparecerán brevemente como en carga. Tu sesión de Spotify no se ve afectada.</string>
+    <string name="settings_cache_clear">LIMPIAR CACHÉ DE LETRAS</string>
+    <string name="settings_cache_working">Trabajando\u2026</string>
+    <string name="settings_cache_clear_title">¿Limpiar la caché de letras?</string>
+    <string name="settings_cache_clear_msg">Esto elimina todas las letras que el relay tiene cacheadas. Las canciones limpiadas se descargarán del proveedor de nuevo la próxima vez que suenen y aparecerán brevemente como en carga. Tu sesión de Spotify no se ve afectada.</string>
+    <string name="settings_cache_clear_ok">Limpiar</string>
+    <string name="settings_cache_clear_cancel">Cancelar</string>
+    <string name="settings_cache_cleared">Caché limpiada</string>
+    <string name="settings_cache_cleared_detail">%1$d entradas eliminadas \u00b7 %2$s liberados en disco</string>
+    <string name="settings_cache_failed">No se pudo limpiar la caché</string>
+    <string name="settings_cache_failed_http">HTTP %1$d: %2$s</string>
+    <string name="settings_cache_failed_relay">El relay no ha confirmado la limpieza</string>
+
     <!-- Free-text fragments of the diagnostic check list (see Diagnostics.Labels) -->
     <string name="diag_detail_invalid_url">URL no válida</string>
     <string name="diag_detail_implied">implícito (el relay respondió)</string>

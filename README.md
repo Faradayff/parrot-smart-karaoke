@@ -82,7 +82,7 @@ without a `version` field; the app then keeps its classic adaptive polling
 
 Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not trust Let's Encrypt roots**. The assumed setup is:
 
-- a **vhost on port 80** (HTTP) of the relay, protected with **Basic Auth** at the proxy (e.g. the Synology reverse proxy), mounting `/status` **and `POST /control`** — the two endpoints the car needs, including for the transport row — so that `/login`, `/callback`, and `/logout` stay only on the browser's HTTPS vhost (Let's Encrypt). The cache-wipe command `POST /cache/clear` is run by hand, not by the car — see [Wiping the lyrics cache](#wiping-the-lyrics-cache-post-cacheclear).
+- a **vhost on port 80** (HTTP) of the relay, protected with **Basic Auth** at the proxy (e.g. the Synology reverse proxy), mounting `/status`, `POST /control`, **and `POST /cache/clear`** — the endpoints the car needs, incl. the transport row and the settings screen's "Clear lyrics cache" button (otherwise the button answers with a `404`) — so that `/login`, `/callback`, and `/logout` stay only on the browser's HTTPS vhost (Let's Encrypt). The cache-wipe command is also run by hand from any machine — see [Wiping the lyrics cache](#wiping-the-lyrics-cache-post-cacheclear).
 - the app adds `Authorization: Basic …` to each request (user/pass from the settings screen, never in the binary).
 
 ## Usage
@@ -155,8 +155,14 @@ When it is actually needed:
   and cached lyrics expire after 365 days. So "new song got lyrics later"
   needs no action — a full wipe is only for forcing a refresh *now*.
 
-The app never calls this endpoint itself; it is a one-off command from any
-machine (the car's HTTP vhost only forwards `/status` and `/control`):
+In the app it is a deliberate, one-off action behind the **red
+"Clear lyrics cache" button at the bottom of Settings** — clearly apart from
+the form, red-bordered, and confirming first: while the request is in flight
+the button shows "Working…", and afterwards the app shows the relay's own
+report (*N entries removed · N KB freed on disk*) or its error (HTTP code +
+snippet). For the car button to work, the car's HTTP vhost must forward
+`/cache/clear` in addition to `/status` and `/control`. It is also a one-off
+command from any machine:
 
 ```bash
 # from the browser's HTTPS vhost (or any host that reaches the relay):
@@ -216,14 +222,14 @@ on GitHub Actions and creates the release automatically.
 - **Stack**: Java (no lambdas, no androidx, no third-party libraries),
   `minSdk 10` / `targetSdk 10`, AGP 8.5 + Gradle 8.7 + JDK 17.
 - Structure:
-  - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM).
-  - `net/` — `Http` (HttpURLConnection + Base64, `get` and `post`, typed `HttpException` with the status code, per-call read timeout), `RelayClient` (long-poll/wait loop when the relay advertises `version`, classic adaptive polling otherwise; quiet retries before the first diagnosis; `controlUrlFor` derives the `/control` URL from the configured status URL, and `nudge` shortens the next poll after a control action), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
+  - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM), `CacheClearResult` (parses the `POST /cache/clear` report — `ok`, `removed`, `freedBytes` — testable on the JVM).
+  - `net/` — `Http` (HttpURLConnection + Base64, `get` and `post` — the latter returns the response body —, typed `HttpException` with the status code, per-call read timeout), `RelayClient` (long-poll/wait loop when the relay advertises `version`, classic adaptive polling otherwise; quiet retries before the first diagnosis; `controlUrlFor` and `cacheClearUrlFor` derive the `/control` and `/cache/clear` URLs from the configured status URL, and `nudge` shortens the next poll after a control action), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
   - `MainActivity` — karaoke band UI and states (playing, paused, lyrics loading, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown; the full check list is shown only when the Settings "Debug mode" toggle is on, otherwise just the short headline — the attempt number stays visible in both), a transport row (previous / play-pause / next) that POSTs to the relay's `/control` endpoint and whose central button flips between a play and a pause icon with `Status.playing`, and an album cover that is only visible while it actually shows an image.
-  - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps), Debug mode toggle.
+  - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps), Debug mode toggle, and the dangerous "Clear lyrics cache" button (confirmation dialog, "Working…" while the POST is in flight, success/failure dialog with the relay's report or its HTTP error).
   - `util/Prefs` — keys and default values.
 - Build and tests:
   ```
-  ./gradlew :app:testDebugUnitTest   # parser, diagnostics, relay-client (incl. control-URL derivation) and lyric-index unit tests (53 cases)
+  ./gradlew :app:testDebugUnitTest   # parser, cache-wipe report, diagnostics, relay-client (incl. control- & cache-clear-URL derivation) and lyric-index unit tests (61 cases)
   ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
   ```
   - **Local development builds**: the relay defaults (URL, Basic Auth user/pass)

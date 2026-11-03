@@ -54,6 +54,21 @@
     <string name="settings_save">SAVE</string>
     <string name="settings_saved">Saved</string>
 
+    <!-- Dangerous: wipe the relay\'s lyrics cache (POST /cache/clear) -->
+    <string name="settings_cache">Relay lyrics cache (dangerous)</string>
+    <string name="settings_cache_hint">Erases every lyric the relay has cached (memory + disk). Wiped songs are fetched again the next time they play and briefly show as loading. Your Spotify session is not touched.</string>
+    <string name="settings_cache_clear">CLEAR LYRICS CACHE</string>
+    <string name="settings_cache_working">Working\u2026</string>
+    <string name="settings_cache_clear_title">Clear the lyrics cache?</string>
+    <string name="settings_cache_clear_msg">This wipes every lyric the relay has cached. Wiped songs are downloaded from the provider again the next time they play and briefly show as loading. Your Spotify session is not touched.</string>
+    <string name="settings_cache_clear_ok">Clear</string>
+    <string name="settings_cache_clear_cancel">Cancel</string>
+    <string name="settings_cache_cleared">Cache cleared</string>
+    <string name="settings_cache_cleared_detail">%1$d entries removed \u00b7 %2$s freed on disk</string>
+    <string name="settings_cache_failed">Could not clear the cache</string>
+    <string name="settings_cache_failed_http">HTTP %1$d: %2$s</string>
+    <string name="settings_cache_failed_relay">The relay did not report a successful wipe</string>
+
     <!-- Free-text fragments of the diagnostic check list (see Diagnostics.Labels) -->
     <string name="diag_detail_invalid_url">invalid URL</string>
     <string name="diag_detail_implied">implied (relay answered)</string>

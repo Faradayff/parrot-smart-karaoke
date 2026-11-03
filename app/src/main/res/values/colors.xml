@@ -11,4 +11,11 @@
     <color name="message">#FFD2D6DA</color>
     <color name="messageDetail">#FF8A9098</color>
     <color name="footerColor">#FF6B7280</color>
+    <!-- Dangerous action (wipe the relay's lyrics cache): button text, border -->
+    <color name="danger">#FFEF4444</color>
+    <!-- Button fill: dark red, pressed state brighter, disabled dimmed -->
+    <color name="dangerBg">#40EF4444</color>
+    <color name="dangerBgPressed">#66EF4444</color>
+    <color name="dangerBgDisabled">#22EF4444</color>
+    <color name="dangerBorderDisabled">#55EF4444</color>
 </resources>
