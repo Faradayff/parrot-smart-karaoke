@@ -82,7 +82,7 @@ without a `version` field; the app then keeps its classic adaptive polling
 
 Android 2.3.7 only speaks **TLS 1.0**, and its CA store (≈2012) **does not trust Let's Encrypt roots**. The assumed setup is:
 
-- a **vhost on port 80** (HTTP) of the relay, protected with **Basic Auth** at the proxy (e.g. the Synology reverse proxy), mounting `/status` **and `POST /control`** — the two endpoints the car needs, including for the transport row — so that `/login`, `/callback`, and `/logout` stay only on the browser's HTTPS vhost (Let's Encrypt).
+- a **vhost on port 80** (HTTP) of the relay, protected with **Basic Auth** at the proxy (e.g. the Synology reverse proxy), mounting `/status` **and `POST /control`** — the two endpoints the car needs, including for the transport row — so that `/login`, `/callback`, and `/logout` stay only on the browser's HTTPS vhost (Let's Encrypt). The cache-wipe command `POST /cache/clear` is run by hand, not by the car — see [Wiping the lyrics cache](#wiping-the-lyrics-cache-post-cacheclear).
 - the app adds `Authorization: Basic …` to each request (user/pass from the settings screen, never in the binary).
 
 ## Usage
@@ -117,6 +117,57 @@ Without a connection it shows a live diagnosis on every attempt — general inte
 reachability (TCP probe to a public host), DNS of the relay, the relay port, and the
 HTTP answer (e.g. 401 = credentials rejected) — with the attempt number and
 a running countdown of the next retry, so the screen never looks frozen.
+
+## Wiping the lyrics cache (`POST /cache/clear`)
+
+Since **relay v1.2** the relay remembers resolved lyrics for a long time
+(see the [relay's *Lyrics cache* section](https://github.com/Faradayff/spotify-lyrics-relay#lyrics-cache)).
+That is normally what you want — the lyrics API is off the hot path — but if
+[lrcLib](https://lrclib.net) later serves a **corrected** version of the lyrics
+and the old (cached) copy keeps showing on the screen, the way to see the new
+text right away is to wipe the relay's cache:
+
+```
+POST /cache/clear   →   200 { "ok": true, "removed": 137, "freedBytes": 402112 }
+```
+
+What it does:
+
+- **POST only.** Any other method answers `405` — typing the URL in a browser
+  can never wipe anything by accident.
+- **No body, no parameters.** `removed` = entries dropped (memory + disk),
+  `freedBytes` ≈ disk space reclaimed. HTTP `500` with `{"ok":false,"error":…}`
+  only if the wipe itself fails.
+- It clears **only the lyrics cache** — the in-memory map and the files under
+  the relay's state volume. Your **Spotify session is untouched**, and the app
+  needs no change: it never caches lyrics locally, it always renders what the
+  relay serves.
+- Wiped songs are fetched from the provider again the next time they play: the
+  app will briefly show its quiet **"Loading the lyrics…"** state (the relay's
+  `lyricsStatus: "loading"`), then the new text renders as usual.
+
+When it is actually needed:
+
+- **Corrected lyrics** on lrcLib — call it and re-play the song.
+- Reclaiming disk space, or resetting a cache that looks stale.
+- Otherwise *not*: a song that had no lyrics yet is re-checked by the relay
+  within 1 day automatically (404 shadows are memory-only and short-lived),
+  and cached lyrics expire after 365 days. So "new song got lyrics later"
+  needs no action — a full wipe is only for forcing a refresh *now*.
+
+The app never calls this endpoint itself; it is a one-off command from any
+machine (the car's HTTP vhost only forwards `/status` and `/control`):
+
+```bash
+# from the browser's HTTPS vhost (or any host that reaches the relay):
+curl -X POST -u USER:PASS https://your-public.hostname/lyrics/cache/clear
+
+# or directly on the relay's machine:
+curl -X POST http://127.0.0.1:8899/lyrics/cache/clear
+# → {"ok":true,"removed":137,"freedBytes":402112}
+```
+
+(Use the relay's base path in the URL, as with `/status` and `/control`.)
 
 ## Asteroid Tweaker (third-party app)
 
