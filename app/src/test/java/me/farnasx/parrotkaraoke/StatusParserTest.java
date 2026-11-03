@@ -216,6 +216,78 @@ public class StatusParserTest {
     }
 
     @Test
+    public void parsesLoadingLyricsState() {
+        // New relay: the track has lyrics but they are not resolved yet
+        // (provider refusal riding out the relay's own backoff). The payload
+        // carries NO error and NO lyrics, only the "loading" state and the
+        // pendingMs hint.
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"auth\":true,\"playing\":false,\"positionMs\":42000,"
+                + "\"version\":9,\"lyricsStatus\":\"loading\",\"pendingMs\":45000,"
+                + "\"track\":{\"id\":\"t3\",\"name\":\"Z\",\"artist\":\"W\"},"
+                + "\"lyricsSynced\":false,\"lyricsLines\":0}");
+        assertTrue(s.ok);
+        assertNotNull(s.track);
+        assertFalse(s.lyricsSynced);
+        assertEquals("loading", s.lyricsStatus);
+        assertEquals(45000L, s.pendingMs);
+        assertEquals(-1, s.line);
+        assertEquals("", s.lineText);
+        assertEquals("", s.plain);
+        assertEquals("", s.error);
+    }
+
+    @Test
+    public void parsesSyncedAndNoneLyricsStatus() {
+        Status synced = StatusParser.parse(
+                "{\"ok\":true,\"lyricsStatus\":\"synced\",\"line\":3,"
+                + "\"lineText\":\"hello\"}");
+        assertEquals("synced", synced.lyricsStatus);
+        assertEquals(-1L, synced.pendingMs);
+
+        Status none = StatusParser.parse(
+                "{\"ok\":true,\"lyricsStatus\":\"none\"}");
+        assertEquals("none", none.lyricsStatus);
+        assertEquals(-1L, none.pendingMs);
+    }
+
+    @Test
+    public void loadingWithoutPendingMsKeepsMinusOne() {
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"lyricsStatus\":\"loading\"}");
+        assertEquals("loading", s.lyricsStatus);
+        assertEquals(-1L, s.pendingMs);
+    }
+
+    @Test
+    public void parsesPlainLyricsStatus() {
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"lyricsStatus\":\"plain\","
+                + "\"plain\":\"line one\\nline two\"}");
+        assertEquals("plain", s.lyricsStatus);
+        assertEquals("line one\nline two", s.plain);
+    }
+
+    @Test
+    public void oldRelayWithoutLyricsStatusKeepsDefaults() {
+        // A relay predating the lyricsStatus feature omits it; the classic
+        // signals (error / no lyrics) must still parse exactly as before.
+        Status s = StatusParser.parse(
+                "{\"ok\":true,\"auth\":true,\"playing\":false,"
+                + "\"track\":{\"id\":\"t1\",\"name\":\"X\",\"artist\":\"Y\"},"
+                + "\"lyricsSynced\":false,\"error\":\"lrclib 503: busy\"}");
+        assertEquals("", s.lyricsStatus);
+        assertEquals(-1L, s.pendingMs);
+        assertEquals("lrclib 503: busy", s.error);
+
+        Status clean = StatusParser.parse(
+                "{\"ok\":true,\"auth\":true,\"lyricsSynced\":false}");
+        assertEquals("", clean.lyricsStatus);
+        assertEquals(-1L, clean.pendingMs);
+        assertEquals("", clean.error);
+    }
+
+    @Test
     public void oldRelayWithoutDelayMsKeepsDefault() {
         // A relay predating the delay feature does not send delayMs -> -1. The
         // served line/lineText are still parsed; a stray "lines" array, if any,

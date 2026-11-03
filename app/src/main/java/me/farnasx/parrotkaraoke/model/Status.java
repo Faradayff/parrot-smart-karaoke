@@ -37,6 +37,26 @@ public final class Status {
     public long delayMs = -1L;
 
     /**
+     * Lyrics resolution state, reported by the new relay: one of "synced",
+     * "plain", "none" or "loading".
+     * <p>"loading" = the track HAS lyrics but the relay has not resolved them
+     * yet (first fetch in flight, or a provider refusal riding out the relay's
+     * own backoff). While loading the relay reports neither lyrics nor an
+     * error, so the client must show a quiet "loading" state — never an error,
+     * never "no lyrics".
+     * <p>"" = a relay predating this field; keep the classic error /
+     * no-lyrics distinction.
+     */
+    public String lyricsStatus = "";
+
+    /**
+     * While {@code lyricsStatus == "loading"}: ≈ ms until the relay's next
+     * attempt (operator hint; deliberately not part of the relay's change
+     * fingerprint). -1 = not reported.
+     */
+    public long pendingMs = -1L;
+
+    /**
      * Relay state version (long-poll / "wait" mode). The relay increments it
      * every time the visible state changes (line, track, playing, auth…).
      * <p>-1 = the relay did not send the field (older relay: classic polling).

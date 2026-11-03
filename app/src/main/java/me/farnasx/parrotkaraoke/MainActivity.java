@@ -548,6 +548,14 @@ public class MainActivity extends Activity {
             renderBand(s, active);
         } else if (nonEmpty(s.plain)) {
             renderPlain(s.plain, active);
+        } else if ("loading".equals(s.lyricsStatus)) {
+            // New relay: the track HAS lyrics but they are not resolved yet
+            // (first fetch in flight, or a provider refusal riding out the
+            // relay's own backoff). This is deliberately NOT an error: say
+            // the lyrics are loading and wait quietly. When the lyrics (or
+            // their absence) arrive the relay bumps the version, which wakes
+            // the wait connection.
+            renderLoading(s, active);
         } else if (nonEmpty(s.error)) {
             // The track exists but the relay could not fetch its lyrics
             // (a transient lrcLib 5xx is the usual cause): say so plainly.
@@ -747,6 +755,23 @@ public class MainActivity extends Activity {
         if (show) {
             setTextViewText(v, text);
         }
+    }
+
+    /**
+     * Quiet "cargando letra…" state: the relay reports the track has lyrics
+     * but they are still being resolved. No red warning, no "busy" — just a
+     * short sentence. The pendingMs hint (≈ ms until the relay's next
+     * attempt) is an operator cue and is shown only in debug mode; normal
+     * users see one calm line either way.
+     */
+    private void renderLoading(Status s, boolean active) {
+        String detail = "";
+        if (debugMode && s.pendingMs >= 0L) {
+            detail = getString(R.string.lyrics_loading_pending,
+                    (int) Math.round(s.pendingMs / 1000.0));
+        }
+        showPlainMessage(getString(R.string.lyrics_loading), detail);
+        setTextViewText(footer, getString(active ? R.string.footer_online : R.string.footer_paused));
     }
 
     private void renderPlain(String text, boolean active) {

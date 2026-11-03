@@ -35,10 +35,19 @@ GET /status  →  200 JSON
   "prevLine": "…",           // text of the line above the active one ("" at the first line)
   "nextLines": [ …up to 3… ],
   "delayMs": 1200,           // audio-delay applied by the relay (echoed back for diagnostics)
+  "lyricsStatus": "synced",  // synced | plain | none | loading — how the lyrics were resolved
+  "pendingMs": 45000,        // only while "loading": ≈ ms until the relay's next attempt
   "version": 42,             // state version (incremented when the visible state changes)
   "plain": "only if no synced lyrics exist"
 }
 ```
+
+While the lyrics are not resolved yet (first fetch in flight, or a
+provider refusal riding out the relay's own backoff) the relay reports
+`"lyricsStatus": "loading"` — with a `pendingMs` hint and **no error**:
+the app shows a quiet "Loading the lyrics…" state, never an error, and the
+relay's version bump when the lyrics (or their absence) arrive wakes the
+wait connection.
 
 and for the transport row:
 
@@ -158,12 +167,12 @@ on GitHub Actions and creates the release automatically.
 - Structure:
   - `model/` — `Status`, `Track`, `LyricLine`, `LyricIndex` (active line at `positionMs − delay`, testable on the JVM), `StatusParser` (JSON → model, testable on the JVM).
   - `net/` — `Http` (HttpURLConnection + Base64, `get` and `post`, typed `HttpException` with the status code, per-call read timeout), `RelayClient` (long-poll/wait loop when the relay advertises `version`, classic adaptive polling otherwise; quiet retries before the first diagnosis; `controlUrlFor` derives the `/control` URL from the configured status URL, and `nudge` shortens the next poll after a control action), `Diagnostics` (failsafe check per attempt: internet TCP probe, DNS, relay port, HTTP status → `Diagnosis` shown in the UI), `CoverLoader` (downsampled covers).
-  - `MainActivity` — karaoke band UI and states (playing, paused, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown; the full check list is shown only when the Settings "Debug mode" toggle is on, otherwise just the short headline — the attempt number stays visible in both), a transport row (previous / play-pause / next) that POSTs to the relay's `/control` endpoint and whose central button flips between a play and a pause icon with `Status.playing`, and an album cover that is only visible while it actually shows an image.
+  - `MainActivity` — karaoke band UI and states (playing, paused, lyrics loading, no lyrics, relay error, and a live connectivity diagnostic per retry attempt with a countdown; the full check list is shown only when the Settings "Debug mode" toggle is on, otherwise just the short headline — the attempt number stays visible in both), a transport row (previous / play-pause / next) that POSTs to the relay's `/control` endpoint and whose central button flips between a play and a pause icon with `Status.playing`, and an album cover that is only visible while it actually shows an image.
   - `SettingsActivity` — URL, user/pass, interval, lyrics delay (− / + stepper, 0.1 s steps), Debug mode toggle.
   - `util/Prefs` — keys and default values.
 - Build and tests:
   ```
-  ./gradlew :app:testDebugUnitTest   # parser, diagnostics, relay-client (incl. control-URL derivation) and lyric-index unit tests (48 cases)
+  ./gradlew :app:testDebugUnitTest   # parser, diagnostics, relay-client (incl. control-URL derivation) and lyric-index unit tests (53 cases)
   ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
   ```
   - **Local development builds**: the relay defaults (URL, Basic Auth user/pass)

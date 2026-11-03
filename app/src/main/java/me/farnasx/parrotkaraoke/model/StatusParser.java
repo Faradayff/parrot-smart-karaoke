@@ -50,6 +50,13 @@ public final class StatusParser {
         s.prevLine = displaySpace(o.optString("prevLine", "")).trim();
         s.nextLines = parseLines(o.optJSONArray("nextLines"));
         s.plain = displaySpace(o.optString("plain", ""));
+        // New relay: lyrics resolution state (synced | plain | none | loading).
+        // "loading" means the track has lyrics but they are not resolved yet
+        // (first fetch in flight, or a provider refusal riding out the relay's
+        // own backoff): no lyrics and no error while it holds.
+        s.lyricsStatus = o.optString("lyricsStatus", "");
+        // ≈ ms until the relay's next attempt; present only while loading.
+        s.pendingMs = o.optLong("pendingMs", -1L);
 
         // Long-poll support: "version": null or non-numeric keeps the -1 default.
         s.version = o.optLong("version", -1L);
