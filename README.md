@@ -155,21 +155,35 @@ When it is actually needed:
   and cached lyrics expire after 365 days. So "new song got lyrics later"
   needs no action — a full wipe is only for forcing a refresh *now*.
 
-In the app it is a deliberate, one-off action behind the **red
-"Clear lyrics cache" button at the bottom of Settings** — clearly apart from
-the form, red-bordered, and confirming first: while the request is in flight
-the button shows "Working…", and afterwards the app shows the relay's own
-report (*N entries removed · N KB freed on disk*) or its error (HTTP code +
-snippet). For the car button to work, the car's HTTP vhost must forward
-`/cache/clear` in addition to `/status` and `/control`. It is also a one-off
-command from any machine:
+In the app both are deliberate, one-off actions behind **two buttons at the
+bottom of Settings**, clearly apart from the form and both confirming first
+(their color mirrors the damage: orange sits above red):
+
+- **Orange — "Clear this song's lyrics"**
+  (`POST /cache/track?id=<trackId>&artist=<artist>`): the app reads a fresh
+  `GET /status` to learn the id+artist pair it must target (that pair IS the
+  relay's cache key), names the song in the confirmation dialog, and drops
+  *only* that cached lyric. A song that was never cached answers
+  `"removed":0` — a soft success, not an error. Only use this for the case
+  where one song's lyric is wrong/old: **corrected lyrics** on lrcLib.
+- **Red — "Clear lyrics cache"** (`POST /cache/clear`): wipes every cached
+  lyric. Use it to reclaim disk space or reset a cache that looks stale.
+
+On both, while the request is in flight the button shows "Working…", and
+afterwards the app shows the relay's own report (*N entries removed ·
+N KB freed on disk*) or its error (HTTP code + snippet). For either button to
+work, the car's HTTP vhost must forward `/cache/track` and `/cache/clear` in
+addition to `/status` and `/control`. They are also one-off commands from any
+machine:
 
 ```bash
-# from the browser's HTTPS vhost (or any host that reaches the relay):
-curl -X POST -u USER:PASS https://your-public.hostname/lyrics/cache/clear
+# drop ONE song's cached lyric (trackId/artist are the values /status reports):
+curl -X POST -u USER:PASS \
+  'https://your-public.hostname/lyrics/cache/track?id=4c0sRXhoW2ZtN2pJ4c5xv3&artist=The+Beatles'
+# → {"ok":true,"id":"4c0sRXhoW2ZtN2pJ4c5xv3","removed":1,"freedBytes":87312}
 
-# or directly on the relay's machine:
-curl -X POST http://127.0.0.1:8899/lyrics/cache/clear
+# wipe the WHOLE lyrics cache:
+curl -X POST -u USER:PASS https://your-public.hostname/lyrics/cache/clear
 # → {"ok":true,"removed":137,"freedBytes":402112}
 ```
 

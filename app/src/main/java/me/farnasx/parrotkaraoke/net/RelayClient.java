@@ -3,6 +3,9 @@ package me.farnasx.parrotkaraoke.net;
 import android.os.Handler;
 import android.os.Looper;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
 import me.farnasx.parrotkaraoke.model.Status;
 import me.farnasx.parrotkaraoke.model.StatusParser;
 
@@ -353,10 +356,49 @@ public final class RelayClient {
     }
 
     /**
+     * Derives the relay single-track cache-drop URL ({@code POST /cache/track})
+     * from the configured status URL: {@code http://host/status} →
+     * {@code http://host/cache/track?id=...&artist=...}. The track identity is
+     * the id + artist pair the relay's own {@code /status} payload reports (it
+     * IS the cache key), so the values are round-tripped verbatim; the artist
+     * in particular is percent-encoded, since real names contain spaces and
+     * punctuation. Same stripping rules as {@link #cacheClearUrlFor}.
+     *
+     * @param trackId the relay-reported Spotify track id (required by the relay)
+     * @param artist  the relay-reported artist name (may be empty)
+     */
+    public static String cacheTrackUrlFor(String statusUrl, String trackId, String artist) {
+        return relayBaseFor(statusUrl) + "/cache/track"
+                + "?id=" + urlEncode(trackId)
+                + "&artist=" + urlEncode(artist);
+    }
+
+    /**
+     * Percent-encodes a query value {@code application/x-www-form-urlencoded}
+     * style (spaces become {@code +}, which Go's {@code url.ParseQuery} — the
+     * relay's query parser — decodes back to a space). {@code null} and the
+     * empty string stay empty; on any unexpected failure the value is sent
+     * unchanged rather than dropping the request.
+     */
+    private static String urlEncode(String s) {
+        if (s == null || s.length() == 0) {
+            return "";
+        }
+        try {
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // UTF-8 is guaranteed on every Android/Java runtime; this should
+            // never happen, but if it does, a raw value beats a lost parameter.
+            return s;
+        }
+    }
+
+    /**
      * The relay base a mounted endpoint sits on: the stored status URL minus
      * its query, trailing slashes, and the final {@code /status},
-     * {@code /control} or {@code /cache/clear} segment (tolerant of a URL
-     * stored at the root or already pointing at a sibling endpoint).
+     * {@code /control}, {@code /cache/clear} or {@code /cache/track} segment
+     * (tolerant of a URL stored at the root or already pointing at a sibling
+     * endpoint).
      */
     private static String relayBaseFor(String statusUrl) {
         String base = (statusUrl == null) ? "" : statusUrl.trim();
@@ -373,6 +415,8 @@ public final class RelayClient {
             base = base.substring(0, base.length() - "/control".length());
         } else if (base.endsWith("/cache/clear")) {
             base = base.substring(0, base.length() - "/cache/clear".length());
+        } else if (base.endsWith("/cache/track")) {
+            base = base.substring(0, base.length() - "/cache/track".length());
         }
         return base;
     }

@@ -142,6 +142,54 @@ public class RelayClientTest {
     }
 
     @Test
+    public void cacheTrackUrlCarriesIdAndArtistQuery() {
+        assertEquals("http://relay/cache/track?id=abc123&artist=Band",
+                RelayClient.cacheTrackUrlFor("http://relay/status", "abc123", "Band"));
+    }
+
+    @Test
+    public void cacheTrackUrlPercentEncodesTheArtist() {
+        // Real artist names have spaces: form-encoded on the wire (+ becomes a
+        // space again in the relay's Go-side url.ParseQuery).
+        assertEquals("http://relay/cache/track?id=abc123&artist=The+Beatles",
+                RelayClient.cacheTrackUrlFor("http://relay/status", "abc123", "The Beatles"));
+        // Non-ASCII names travel UTF-8 percent-encoded.
+        assertEquals("http://relay/cache/track?id=abc123&artist=Banda+%C3%81spera",
+                RelayClient.cacheTrackUrlFor("http://relay/status", "abc123", "Banda Áspera"));
+        // Punctuation (a literal slash would break the path) is encoded.
+        assertEquals("http://relay/cache/track?id=abc123&artist=A%2FDB",
+                RelayClient.cacheTrackUrlFor("http://relay/status", "abc123", "A/DB"));
+    }
+
+    @Test
+    public void cacheTrackUrlAllowsAnEmptyArtist() {
+        // The relay makes id alone sufficient; an unknown artist stays empty.
+        assertEquals("http://relay/cache/track?id=abc123&artist=",
+                RelayClient.cacheTrackUrlFor("http://relay/status", "abc123", ""));
+    }
+
+    @Test
+    public void cacheTrackUrlKeepsHostAndBasePath() {
+        // A relay mounted under a base path: only the endpoint changes.
+        assertEquals("https://host/lyrics/cache/track?id=a&artist=b",
+                RelayClient.cacheTrackUrlFor("https://host/lyrics/status", "a", "b"));
+        // A settings URL that points at the relay root: the path is appended.
+        assertEquals("http://10.0.0.5:8899/cache/track?id=a&artist=b",
+                RelayClient.cacheTrackUrlFor("http://10.0.0.5:8899/", "a", "b"));
+    }
+
+    @Test
+    public void cacheTrackUrlToleratesSloppyStoredUrls() {
+        assertEquals("http://relay/cache/track?id=a&artist=b",
+                RelayClient.cacheTrackUrlFor("http://relay/status?x=1", "a", "b"));
+        assertEquals("http://relay/cache/track?id=a&artist=b",
+                RelayClient.cacheTrackUrlFor("http://relay/cache/clear", "a", "b"));
+        // Already pointing at the endpoint: idempotent.
+        assertEquals("http://relay/cache/track?id=a&artist=b",
+                RelayClient.cacheTrackUrlFor("http://relay/cache/track", "a", "b"));
+    }
+
+    @Test
     public void readTimeoutIsLongerInWaitMode() {
         assertTrue(RelayClient.WAIT_READ_TIMEOUT_MS > RelayClient.WAIT_TIMEOUT_MS);
         assertTrue(RelayClient.WAIT_READ_TIMEOUT_MS > Http.READ_TIMEOUT_MS);

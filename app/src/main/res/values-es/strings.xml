@@ -72,6 +72,17 @@
     <string name="settings_cache_failed_http">HTTP %1$d: %2$s</string>
     <string name="settings_cache_failed_relay">El relay no ha confirmado la limpieza</string>
 
+    <!-- Peligroso, pero acotado a una canción: borra la letra cacheada de la pista actual (POST /cache/track) -->
+    <string name="settings_cache_track">LIMPIAR LA LETRA DE ESTA CANCIÓN</string>
+    <string name="settings_cache_track_title">¿Limpiar la letra de esta canción?</string>
+    <string name="settings_cache_track_msg">Esto elimina la letra cacheada de «%1$s» de %2$s. Se descargará de nuevo la próxima vez que suene y aparecerá brevemente como en carga. Tu sesión de Spotify y el resto de la caché no se ven afectados.</string>
+    <string name="settings_cache_track_cleared">Canción limpiada de la caché</string>
+    <string name="settings_cache_track_cleared_detail">Letra eliminada \u00b7 %1$s liberados en disco</string>
+    <string name="settings_cache_track_not_cached">La canción no estaba en la caché: no había nada que borrar.</string>
+    <string name="settings_cache_track_no_track">Ahora mismo no suena nada: no hay ninguna canción actual que limpiar.</string>
+    <string name="settings_cache_track_failed">No se pudo limpiar la letra de esta canción</string>
+    <string name="settings_cache_track_failed_relay">El relay no ha confirmado el borrado</string>
+
     <!-- Free-text fragments of the diagnostic check list (see Diagnostics.Labels) -->
     <string name="diag_detail_invalid_url">URL no válida</string>
     <string name="diag_detail_implied">implícito (el relay respondió)</string>

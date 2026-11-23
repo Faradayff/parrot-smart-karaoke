@@ -69,6 +69,17 @@
     <string name="settings_cache_failed_http">HTTP %1$d: %2$s</string>
     <string name="settings_cache_failed_relay">The relay did not report a successful wipe</string>
 
+    <!-- Dangerous, but scoped to one song: drop the current track\'s cached lyric (POST /cache/track) -->
+    <string name="settings_cache_track">CLEAR THIS SONG\'S LYRICS</string>
+    <string name="settings_cache_track_title">Clear this song\'s lyric?</string>
+    <string name="settings_cache_track_msg">This drops the cached lyric of "%1$s" by %2$s. It will be fetched again the next time it plays and briefly show as loading. Your Spotify session is not touched. The rest of the cache is not touched either.</string>
+    <string name="settings_cache_track_cleared">Song removed from the cache</string>
+    <string name="settings_cache_track_cleared_detail">Lyric removed \u00b7 %1$s freed on disk</string>
+    <string name="settings_cache_track_not_cached">The song wasn\'t in the cache — there was nothing to remove.</string>
+    <string name="settings_cache_track_no_track">Nothing is playing right now — there is no current song to clear.</string>
+    <string name="settings_cache_track_failed">Could not clear this song\'s lyric</string>
+    <string name="settings_cache_track_failed_relay">The relay did not report a successful removal</string>
+
     <!-- Free-text fragments of the diagnostic check list (see Diagnostics.Labels) -->
     <string name="diag_detail_invalid_url">invalid URL</string>
     <string name="diag_detail_implied">implied (relay answered)</string>

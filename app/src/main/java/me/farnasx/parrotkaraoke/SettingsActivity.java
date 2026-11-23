@@ -18,13 +18,17 @@ import android.widget.Toast;
 import java.util.Locale;
 
 import me.farnasx.parrotkaraoke.model.CacheClearResult;
+import me.farnasx.parrotkaraoke.model.Status;
+import me.farnasx.parrotkaraoke.model.StatusParser;
+import me.farnasx.parrotkaraoke.model.Track;
 import me.farnasx.parrotkaraoke.net.Http;
 import me.farnasx.parrotkaraoke.net.RelayClient;
 import me.farnasx.parrotkaraoke.util.Prefs;
 
 /**
  * Minimal settings screen (relay URL, Basic Auth, poll interval, lyrics
- * delay) plus the dangerous relay-maintenance action: wiping the relay's
+ * delay) plus two dangerous relay-maintenance actions: dropping ONE song's
+ * cached lyrics ({@code POST /cache/track}) and wiping the whole relay
  * lyrics cache ({@code POST /cache/clear}).
  */
 public class SettingsActivity extends Activity {
@@ -35,10 +39,14 @@ public class SettingsActivity extends Activity {
     private EditText pollEt;
     private TextView delayValue;
     private CheckBox debugCh;
+    private Button trackClearBtn;
     private Button cacheClearBtn;
 
     /** Live delay value in ms, adjusted with -/+ and persisted on SAVE. */
     private int delayMs;
+
+    /** True while a single-track clear (status lookup + POST) is in flight. */
+    private boolean trackBusy;
 
     /** True while a cache-clear POST is in flight; blocks a second fire. */
     private boolean cacheBusy;
@@ -104,6 +112,13 @@ public class SettingsActivity extends Activity {
             }
         });
 
+        trackClearBtn = (Button) findViewById(R.id.btnCacheTrackClear);
+        trackClearBtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                startTrackClear();
+            }
+        });
+
         cacheClearBtn = (Button) findViewById(R.id.btnCacheClear);
         cacheClearBtn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -163,6 +178,218 @@ public class SettingsActivity extends Activity {
         finish();
     }
 
+    // ---------------------------------- dangerous (scoped): one song's lyric
+
+    /**
+     * Asks the relay to forget the cached lyric of the current track
+     * ({@code POST /cache/track?id=&artist=}). The track identity — the
+     * id + artist pair — is read live from a one-shot {@code GET /status}
+     * (it is the relay's own cache key, so the app round-trips exactly
+     * what the relay reports) and is displayed in the confirmation dialog.
+     * Same double-confirmation as the full wipe; the rest of the cache is
+     * not touched.
+     */
+    private void startTrackClear() {
+        if (trackBusy) {
+            return;
+        }
+        final String url = currentUrl();
+        if (url.length() == 0) {
+            Toast.makeText(this, R.string.diag_bad_url, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        trackBusy = true;
+        trackClearBtn.setEnabled(false);
+        trackClearBtn.setText(R.string.settings_cache_working);
+
+        final String u = userEt.getText().toString().trim();
+        final String p = passEt.getText().toString().trim();
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                String statusJson = null;
+                Exception fail = null;
+                try {
+                    byte[] body = Http.get(url, u, p);
+                    statusJson = new String(body, "UTF-8");
+                } catch (Exception e) {
+                    fail = e;
+                }
+                final String sJson = statusJson;
+                final Exception failure = fail;
+                main.post(new Runnable() {
+                    public void run() {
+                        onTrackLookupDone(failure, sJson);
+                    }
+                });
+            }
+        }, "cache-track-lookup");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void onTrackLookupDone(Exception failure, String statusJson) {
+        if (isFinishing()) {
+            // The user left the settings screen mid-lookup: the GET is
+            // read-only, so the relay still holds everything on its side.
+            resetTrackBusy();
+            return;
+        }
+
+        if (failure != null) {
+            resetTrackBusy();
+            showTrackClearFail(failure);
+            return;
+        }
+
+        Status s = StatusParser.parse(statusJson);
+        if (s.track == null || s.track.id == null || s.track.id.length() == 0) {
+            // The relay is not serving a track: there is nothing to target.
+            resetTrackBusy();
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.settings_cache_track_failed)
+                    .setMessage(R.string.settings_cache_track_no_track)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
+            return;
+        }
+
+        // The button stays "Working…" until the confirmation resolves: a
+        // second click mid-decision must not fire another lookup.
+        final Track track = s.track;
+        String name = (track.name.length() > 0) ? track.name : "-";
+        String artist = (track.artist.length() > 0) ? track.artist : "-";
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.settings_cache_track_title)
+                .setMessage(getString(R.string.settings_cache_track_msg, name, artist))
+                .setNegativeButton(R.string.settings_cache_clear_cancel, null)
+                .setPositiveButton(R.string.settings_cache_clear_ok,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface d, int which) {
+                                sendTrackClear(track);
+                            }
+                        })
+                .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface d) {
+                        resetTrackBusy();
+                    }
+                })
+                .show();
+    }
+
+    private void sendTrackClear(final Track track) {
+        final String trackUrl =
+                RelayClient.cacheTrackUrlFor(currentUrl(), track.id, track.artist);
+        final String u = userEt.getText().toString().trim();
+        final String p = passEt.getText().toString().trim();
+
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                String report = null;
+                Exception fail = null;
+                try {
+                    report = Http.post(trackUrl, u, p);
+                } catch (Exception e) {
+                    fail = e;
+                }
+                final String rep = report;
+                final Exception failure = fail;
+                main.post(new Runnable() {
+                    public void run() {
+                        onTrackClearDone(failure, rep);
+                    }
+                });
+            }
+        }, "cache-track-clear");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void onTrackClearDone(Exception failure, String report) {
+        if (isFinishing()) {
+            // The user left the settings screen mid-clear: the relay still
+            // finishes its job on its side, and there is no UI left to update.
+            resetTrackBusy();
+            return;
+        }
+        resetTrackBusy();
+
+        if (failure != null) {
+            showTrackClearFail(failure);
+            return;
+        }
+
+        // Both endpoints answer the same {"ok", "removed", "freedBytes"}
+        // shape, so the existing parser covers this one too (the extra
+        // "id" field is harmless).
+        CacheClearResult r = CacheClearResult.parse(report);
+        if (!r.ok) {
+            // A 200 with "ok":false would be odd, but show it as a failure
+            // with whatever message the relay carried.
+            showTrackClearFail(new java.io.IOException(
+                    getString(R.string.settings_cache_track_failed_relay)
+                            + (compact(report).length() > 0 ? ": " + compact(report) : "")));
+            return;
+        }
+        if (r.removed == 0) {
+            // Documented no-op: the song was never cached, so the relay
+            // acknowledged with nothing to drop — soft success, not an error.
+            showTrackClearResult(getString(R.string.settings_cache_track_not_cached));
+            return;
+        }
+
+        String detail;
+        if (r.freedBytes >= 0) {
+            detail = getString(R.string.settings_cache_track_cleared_detail,
+                    formatBytes(r.freedBytes));
+        } else {
+            // The relay acknowledged but gave no numbers: show its raw message.
+            detail = compact(report);
+        }
+        showTrackClearResult(detail);
+    }
+
+    /** Soft-success dialog for the single-track clear (cleared or no-op). */
+    private void showTrackClearResult(String detail) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.settings_cache_track_cleared)
+                .setMessage(detail)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
+    private void showTrackClearFail(Exception failure) {
+        String detail;
+        if (failure instanceof Http.HttpException) {
+            Http.HttpException h = (Http.HttpException) failure;
+            detail = getString(R.string.settings_cache_failed_http, h.code,
+                    (h.snippet == null) ? "" : compact(h.snippet));
+        } else {
+            detail = failure.toString();
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.settings_cache_track_failed)
+                .setMessage(detail)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
+    private void resetTrackBusy() {
+        trackBusy = false;
+        if (trackClearBtn != null) {
+            trackClearBtn.setEnabled(true);
+            trackClearBtn.setText(R.string.settings_cache_track);
+        }
+    }
+
+    /** The relay URL exactly as typed on this screen (falling back on blank). */
+    private String currentUrl() {
+        String url = urlEt.getText().toString().trim();
+        if (url.length() == 0) {
+            url = Prefs.DEFAULT_URL;
+        }
+        return url;
+    }
+
     // ------------------------------------------- dangerous: wipe the cache
 
     /**
@@ -192,10 +419,7 @@ public class SettingsActivity extends Activity {
 
     private void sendCacheClear() {
         // Fire on the exact values the user sees in the form.
-        String url = urlEt.getText().toString().trim();
-        if (url.length() == 0) {
-            url = Prefs.DEFAULT_URL;
-        }
+        String url = currentUrl();
         if (url.length() == 0) {
             Toast.makeText(this, R.string.diag_bad_url, Toast.LENGTH_SHORT).show();
             return;

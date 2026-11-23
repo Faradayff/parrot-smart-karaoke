@@ -142,9 +142,11 @@
             android:layout_marginTop="20dp"
             android:text="@string/settings_save" />
 
-        <!-- Dangerous relay maintenance: wipe the lyrics cache (POST /cache/clear).
-             Kept deliberately apart from the form and in a red, bordered
-             button so it is never mistaken for a settings control. -->
+        <!-- Dangerous relay maintenance. Kept deliberately apart from the form
+             and in bordered buttons so it is never mistaken for a settings
+             control: the orange one drops ONE song's cached lyric
+             (POST /cache/track) — above the red one, which wipes the whole
+             cache (POST /cache/clear). -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -159,6 +161,18 @@
             android:text="@string/settings_cache_hint"
             android:textColor="@color/subtitle"
             android:textSize="12sp" />
+
+        <!-- Scopes down to the one song currently loaded on the relay:
+             orange sits above red, mirroring the damage they deal. -->
+        <Button
+            android:id="@+id/btnCacheTrackClear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/btn_warning"
+            android:text="@string/settings_cache_track"
+            android:textColor="@color/warning"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnCacheClear"
